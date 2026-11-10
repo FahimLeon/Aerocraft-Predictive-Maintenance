@@ -1,0 +1,44 @@
+{
+ "key": {
+  "what": "final_feature_pipeline",
+  "code": "ensemble-study-v1",
+  "data": "2ee5a4b9b0f8fe1a06e0",
+  "seed": 0,
+  "feat": {
+   "name": "long_windows",
+   "windows": [
+    5,
+    10,
+    20,
+    30,
+    50
+   ],
+   "slope_windows": [
+    10,
+    20,
+    50,
+    100
+   ],
+   "ewm_alphas": [
+    0.1,
+    0.3
+   ],
+   "baseline_cycles": 10,
+   "raw_only": false,
+   "health_index": true,
+   "fault_axis": false
+  },
+  "hi_cap": 130.0,
+  "versions": {
+   "python": "3.13.18",
+   "numpy": "2.4.6",
+   "pandas": "2.2.3",
+   "scikit-learn": "1.6.1",
+   "xgboost": "3.4.1",
+   "lightgbm": "4.6.0",
+   "catboost": "1.2.10",
+   "scipy": "1.16.3"
+  }
+ },
+ "written_utc": "2026-11-09T07:26:21.809194+00:00"
+}

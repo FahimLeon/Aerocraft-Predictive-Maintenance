@@ -1,0 +1,290 @@
+{
+ "revision": "R1-three-family-2026-11-06",
+ "selection_rule": "lowest nested P200 RMSE among learned-weight candidates with >= 3 model families; fewer members preferred within one engine-bootstrap SE",
+ "selection_under_31oct_rule_two_families": {
+  "FD001": "CatBoost + XGBoost",
+  "FD002": "CatBoost + XGBoost",
+  "FD003": "CatBoost + XGBoost",
+  "FD004": "CatBoost + XGBoost"
+ },
+ "historical_baseline_frozen_file": "results/FROZEN_FINAL_ENSEMBLES.json (2026-10-31, kept unchanged)",
+ "official_labels_seen_in_earlier_evaluations": [
+  "2026-10-27 (earlier cap-130 models)",
+  "2026-10-31 (two-model ensembles)"
+ ],
+ "weights_fingerprint": "2c45e069c154d31909d5",
+ "cap_rule": "lowest mean P200 RMSE of XGBoost and LightGBM over caps (130.0, 145.0, 160.0, 175.0, 200.0, 'T200')",
+ "final": {
+  "FD001": {
+   "dataset": "FD001",
+   "candidate_id": "ENS-C",
+   "name": "CatBoost + XGBoost + LightGBM",
+   "cap": "T200",
+   "members": [
+    {
+     "member_id": "CAT@T200",
+     "family": "CatBoost",
+     "configuration": "CatBoost",
+     "hyper_parameters": {
+      "depth": 8,
+      "iterations": 3000,
+      "learning_rate": 0.03,
+      "l2_leaf_reg": 3.0,
+      "rsm": 0.5
+     },
+     "weight": 0.6930990444926779
+    },
+    {
+     "member_id": "XGB@T200",
+     "family": "XGBoost",
+     "configuration": "XGBoost",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "max_depth": 6,
+      "min_child_weight": 20,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.20690095550731355
+    },
+    {
+     "member_id": "LGB@T200",
+     "family": "LightGBM",
+     "configuration": "LightGBM",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "num_leaves": 31,
+      "min_child_samples": 50,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.10000000000000862
+    }
+   ],
+   "combination": "non-negative convex blend (weights >= 0.10, sum 1) fitted on P200 OOF rows of this dataset",
+   "oof_p200": {
+    "r2": 0.9069227883138483,
+    "rmse": 16.172970806880812,
+    "mae": 10.639478788018266,
+    "rmse_se": 0.6213849121839798
+   },
+   "oof_p150_rmse": 13.286404662819105,
+   "oof_allcycle125_r2": 0.9657362280217549,
+   "best_single": {
+    "name": "CatBoost",
+    "p200_rmse": 16.148747683360558,
+    "p200_r2": 0.9072013929548151
+   },
+   "features": "causal long-window features (aerolife_core.FeatureConfig long_windows) + fold-fitted ridge health index + regime normalisation (6 K-means regimes) + dataset indicator",
+   "training_data": "all 709 training engines of FD001-FD004 (pooled)"
+  },
+  "FD002": {
+   "dataset": "FD002",
+   "candidate_id": "ENS-C",
+   "name": "CatBoost + XGBoost + LightGBM",
+   "cap": "T200",
+   "members": [
+    {
+     "member_id": "CAT@T200",
+     "family": "CatBoost",
+     "configuration": "CatBoost",
+     "hyper_parameters": {
+      "depth": 8,
+      "iterations": 3000,
+      "learning_rate": 0.03,
+      "l2_leaf_reg": 3.0,
+      "rsm": 0.5
+     },
+     "weight": 0.36277775530445294
+    },
+    {
+     "member_id": "XGB@T200",
+     "family": "XGBoost",
+     "configuration": "XGBoost",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "max_depth": 6,
+      "min_child_weight": 20,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.2987941597631072
+    },
+    {
+     "member_id": "LGB@T200",
+     "family": "LightGBM",
+     "configuration": "LightGBM",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "num_leaves": 31,
+      "min_child_samples": 50,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.33842808493244
+    }
+   ],
+   "combination": "non-negative convex blend (weights >= 0.10, sum 1) fitted on P200 OOF rows of this dataset",
+   "oof_p200": {
+    "r2": 0.8796070099833005,
+    "rmse": 18.413335345137618,
+    "mae": 12.47000018511079,
+    "rmse_se": 0.4377455154251726
+   },
+   "oof_p150_rmse": 15.847728940608283,
+   "oof_allcycle125_r2": 0.9519385518204068,
+   "best_single": {
+    "name": "LightGBM",
+    "p200_rmse": 18.52625823457611,
+    "p200_r2": 0.8781258213508916
+   },
+   "features": "causal long-window features (aerolife_core.FeatureConfig long_windows) + fold-fitted ridge health index + regime normalisation (6 K-means regimes) + dataset indicator",
+   "training_data": "all 709 training engines of FD001-FD004 (pooled)"
+  },
+  "FD003": {
+   "dataset": "FD003",
+   "candidate_id": "ENS-C",
+   "name": "CatBoost + XGBoost + LightGBM",
+   "cap": "T200",
+   "members": [
+    {
+     "member_id": "CAT@T200",
+     "family": "CatBoost",
+     "configuration": "CatBoost",
+     "hyper_parameters": {
+      "depth": 8,
+      "iterations": 3000,
+      "learning_rate": 0.03,
+      "l2_leaf_reg": 3.0,
+      "rsm": 0.5
+     },
+     "weight": 0.40597681882272857
+    },
+    {
+     "member_id": "XGB@T200",
+     "family": "XGBoost",
+     "configuration": "XGBoost",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "max_depth": 6,
+      "min_child_weight": 20,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.2588999410287395
+    },
+    {
+     "member_id": "LGB@T200",
+     "family": "LightGBM",
+     "configuration": "LightGBM",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "num_leaves": 31,
+      "min_child_samples": 50,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.335123240148532
+    }
+   ],
+   "combination": "non-negative convex blend (weights >= 0.10, sum 1) fitted on P200 OOF rows of this dataset",
+   "oof_p200": {
+    "r2": 0.9208361619565347,
+    "rmse": 15.417912226910492,
+    "mae": 10.650189971735685,
+    "rmse_se": 0.6083621223897859
+   },
+   "oof_p150_rmse": 13.25784026348762,
+   "oof_allcycle125_r2": 0.9717112130807921,
+   "best_single": {
+    "name": "LightGBM",
+    "p200_rmse": 15.497203524332285,
+    "p200_r2": 0.9200198200247294
+   },
+   "features": "causal long-window features (aerolife_core.FeatureConfig long_windows) + fold-fitted ridge health index + regime normalisation (6 K-means regimes) + dataset indicator",
+   "training_data": "all 709 training engines of FD001-FD004 (pooled)"
+  },
+  "FD004": {
+   "dataset": "FD004",
+   "candidate_id": "ENS-C",
+   "name": "CatBoost + XGBoost + LightGBM",
+   "cap": "T200",
+   "members": [
+    {
+     "member_id": "CAT@T200",
+     "family": "CatBoost",
+     "configuration": "CatBoost",
+     "hyper_parameters": {
+      "depth": 8,
+      "iterations": 3000,
+      "learning_rate": 0.03,
+      "l2_leaf_reg": 3.0,
+      "rsm": 0.5
+     },
+     "weight": 0.3810307250307543
+    },
+    {
+     "member_id": "XGB@T200",
+     "family": "XGBoost",
+     "configuration": "XGBoost",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "max_depth": 6,
+      "min_child_weight": 20,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.154198616804154
+    },
+    {
+     "member_id": "LGB@T200",
+     "family": "LightGBM",
+     "configuration": "LightGBM",
+     "hyper_parameters": {
+      "n_estimators": 600,
+      "learning_rate": 0.03,
+      "num_leaves": 31,
+      "min_child_samples": 50,
+      "subsample": 0.8,
+      "colsample_bytree": 0.5,
+      "reg_lambda": 1.0
+     },
+     "weight": 0.4647706581650918
+    }
+   ],
+   "combination": "non-negative convex blend (weights >= 0.10, sum 1) fitted on P200 OOF rows of this dataset",
+   "oof_p200": {
+    "r2": 0.877272901939498,
+    "rmse": 19.357865817123237,
+    "mae": 12.839191530542154,
+    "rmse_se": 0.9951460113247711
+   },
+   "oof_p150_rmse": 16.109663552812446,
+   "oof_allcycle125_r2": 0.9353415540642686,
+   "best_single": {
+    "name": "LightGBM",
+    "p200_rmse": 19.45206800553484,
+    "p200_r2": 0.8760755290819728
+   },
+   "features": "causal long-window features (aerolife_core.FeatureConfig long_windows) + fold-fitted ridge health index + regime normalisation (6 K-means regimes) + dataset indicator",
+   "training_data": "all 709 training engines of FD001-FD004 (pooled)"
+  }
+ },
+ "oof_table_sha": "560e19ed41eee41451c2",
+ "official_labels_read_before_freeze": false,
+ "frozen_utc": "2026-11-06T20:39:09Z"
+}
