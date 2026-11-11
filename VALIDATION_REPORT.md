@@ -1,40 +1,31 @@
-# AeroLife deployment validation report
+# AeroLife public dashboard update — validation notes
 
-Date: 2026-11-10
+## Included benchmark inputs
+- `test_FD001.txt`: 100 engines, 13,096 rows.
+- `test_FD002.txt`: 259 engines, 33,991 rows.
+- `test_FD003.txt`: 100 engines, 16,596 rows.
+- `test_FD004.txt`: 248 engines, 41,214 rows.
+- All four files were parsed as 26-column NASA C-MAPSS test histories.
 
-## Source and artifacts
+## Runtime checks completed
+- Python syntax compilation: PASS for `app.py` and `aerolife_runtime.py`.
+- Frozen model bundle loading and actual benchmark-input inference: PASS for FD001–FD004.
+- Detailed predictions expose CatBoost, XGBoost, LightGBM and weighted hybrid output columns.
+- FD001 Engine 99 report inference: PASS (latest cycle 97; all component and hybrid predictions finite; interval and risk output returned).
+- SHAP TreeExplainer smoke test: PASS for FD001 Engine 99.
+- Global SHAP smoke test: PASS for a 30-engine FD001 sample (30 × 253 feature attribution matrix).
+- Existing synthetic runtime smoke test: PASS for FD001–FD004.
+- ZIP integrity check: PASS (`ZipFile.testzip()` returned no corrupt member).
 
-- Notebook source: `AeroLife_RUL_Thesis_JOURNAL_DEPLOYMENT_REVISION (1).ipynb`.
-- Model archive: `artifacts-20261110T045805Z-1-001.zip`.
-- ZIP integrity: PASS for both source artifact archive and deployment package.
-- Four R1 ensemble JSON bundles, shared feature pipeline, CatBoost/XGBoost/LightGBM models, and four empirical interval tables: present.
+## Not yet verified
+- Streamlit is not installed in this build environment, so a live browser interaction test was not possible.
+- Clean install and live execution under Python 3.12 on Streamlit Community Cloud must be confirmed after the GitHub update.
+- Exact notebook-to-app parity against all official test predictions was not recalculated in this update.
+- The four NASA `RUL_FD00x.txt` ground-truth label files are not bundled. Actual RUL/error appear only if the visitor supplies the matching label file.
 
-## Actual NASA official-test inference and parity
-
-The four uploaded NASA C-MAPSS `test_FD00x.txt` files were parsed as 26-column, whitespace-delimited, headerless raw histories. The runtime predicted one final-cycle RUL per engine. Predictions were compared with the notebook archive's `official_test_predictions.csv` for the matching dataset and engine IDs.
-
-| Dataset | Engines | Rows | RMSE difference vs saved notebook predictions | Maximum absolute difference |
-|---|---:|---:|---:|---:|
-| FD001 | 100 | 13,096 | 6.24e-15 | 2.84e-14 |
-| FD002 | 259 | 33,991 | 5.68e-15 | 2.84e-14 |
-| FD003 | 100 | 16,596 | 5.06e-15 | 2.84e-14 |
-| FD004 | 248 | 41,214 | 4.28e-15 | 2.84e-14 |
-
-Result: PASS. Predictions match the saved notebook predictions to floating-point precision for all 707 engines. All predictions and interval bounds were finite, and interval ordering checks passed.
-
-This is an independent runtime-vs-saved-output parity check, not a new accuracy evaluation against true RUL labels.
-
-## Application checks and remaining work
-
-- Python syntax compilation: PASS for app, runtime and smoke test.
-- Application uploader supports CSV with required headers and original NASA whitespace-delimited `.txt` files (26 columns, no header).
-- The runtime inference path was exercised on all four actual official test files.
-- Streamlit is not installed in this build environment; a live browser/UI test has NOT been performed.
-- Cloud deployment and public URL creation have NOT been performed. A GitHub repository and Streamlit Community Cloud deployment step are still required.
-- Runtime environment has scikit-learn 1.8.0 while artifact metadata records 1.6.1; XGBoost also emitted an older-pickle warning. `requirements.txt` pins the recorded artifact versions. Use the pinned versions for deployment.
-
-## Scope and methodology notes
-
-This is a research demonstration using simulated NASA C-MAPSS benchmark data, not a certified real-aircraft maintenance system. The saved intervals are empirical residual-based intervals and are not claimed to provide formal conformal coverage guarantees.
-
-The notebook's existing `crossfit_blend` / `crossfit_blend_bounded` functions fit fold-k blending weights on OOF rows from other folds. Since those other-fold base models may have trained on fold-k engines, this can transmit fold-k labels indirectly into the weights. A correct nested outer/inner cross-fitting re-evaluation is a separate research task; this deployment package does not claim to correct that methodology or replace the notebook's reported metrics.
+## Research limitations
+- Dataset-level MAE/RMSE/R²/NASA Score are displayed as previously recorded thesis evaluation values, not recalculated in the web app.
+- Empirical residual intervals are not formal conformal coverage guarantees.
+- SHAP values combine the three tree-member attributions using frozen ensemble weights and describe tree outputs before member clipping and interval post-processing. They are not causal explanations.
+- This is a simulated benchmark research demonstration, not a certified real-aircraft maintenance system.
+- Previously documented OOF blending leakage concerns are not addressed by this dashboard update. No retraining or methodological correction is claimed.

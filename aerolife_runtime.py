@@ -737,59 +737,49 @@ class RULPredictor:
     # 4. PREDICTION
     # ========================================================
 
-    def predict(self, history: pd.DataFrame) -> pd.DataFrame:
-
+    def latest_feature_matrix(self, history: pd.DataFrame):
+        """Return the exact frozen-pipeline feature row for each engine's latest cycle."""
         h = self._validate(history)
-
         h.insert(0, "ds", self.dataset)
-
         h["engine"] = h["unit"]
-
-        h["unit"] = (
-            DS_CODE[self.dataset] * 1000 + h["unit"]
-        )
-
+        h["unit"] = DS_CODE[self.dataset] * 1000 + h["unit"]
         F = self.pipeline.transform(h)
-
         last = h.groupby("unit").tail(1).index
+        X_frame = F.loc[last].copy()
+        X = np.ascontiguousarray(X_frame.to_numpy(np.float32))
+        engine_ids = h.loc[last, "engine"].to_numpy()
+        cycles = h.loc[last, "cycle"].to_numpy()
+        return X, list(X_frame.columns), engine_ids, cycles
 
-        X = np.ascontiguousarray(
-            F.loc[last].to_numpy(np.float32)
-        )
+    def predict(self, history: pd.DataFrame) -> pd.DataFrame:
+        X, _, engine_ids, cycles = self.latest_feature_matrix(history)
+        member_predictions = {}
+        p = np.zeros(len(X), dtype=float)
+        for weight, cap, model in self.members:
+            member_name = model.__class__.__module__.split(".")[0]
+            if member_name == "catboost":
+                label = "catboost_prediction"
+            elif member_name == "xgboost":
+                label = "xgboost_prediction"
+            elif member_name == "lightgbm":
+                label = "lightgbm_prediction"
+            else:
+                label = f"{member_name}_prediction"
+            component = np.clip(model.predict(X), 0, cap)
+            member_predictions[label] = component
+            p += weight * component
 
-        p = sum(
-            w * np.clip(model.predict(X), 0, cap)
-            for w, cap, model in self.members
-        )
-
-        lo, hi = apply_interval(
-            p,
-            self.intervals,
-            0.9
-        )
-
-        return pd.DataFrame({
-
+        lo, hi = apply_interval(p, self.intervals, 0.9)
+        out = pd.DataFrame({
             "dataset": self.dataset,
-
-            "engine": (
-                h.loc[last, "engine"].to_numpy()
-            ),
-
-            "last_cycle": (
-                h.loc[last, "cycle"].to_numpy()
-            ),
-
+            "engine": engine_ids,
+            "last_cycle": cycles,
+            **member_predictions,
             "predicted_rul": p,
-
             "rul_lower_90": lo,
-
             "rul_upper_90": hi,
-
-            "risk_band": [
-                risk_band(v) for v in lo
-            ],
-
+            "risk_band": [risk_band(v) for v in lo],
             "ensemble": self.bundle["name"]
         })
+        return out
 
