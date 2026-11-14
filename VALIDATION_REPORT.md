@@ -21,7 +21,7 @@
 - Streamlit is not installed in this build environment, so a live browser interaction test was not possible.
 - Clean install and live execution under Python 3.12 on Streamlit Community Cloud must be confirmed after the GitHub update.
 - Exact notebook-to-app parity against all official test predictions was not recalculated in this update.
-- The four NASA `RUL_FD00x.txt` ground-truth label files are not bundled. Actual RUL/error appear only if the visitor supplies the matching label file.
+- The four matching NASA ground-truth RUL files are now bundled under `data/nasa_rul/` and loaded automatically by dataset.
 
 ## Research limitations
 - Dataset-level MAE/RMSE/R²/NASA Score are displayed as previously recorded thesis evaluation values, not recalculated in the web app.
@@ -29,3 +29,14 @@
 - SHAP values combine the three tree-member attributions using frozen ensemble weights and describe tree outputs before member clipping and interval post-processing. They are not causal explanations.
 - This is a simulated benchmark research demonstration, not a certified real-aircraft maintenance system.
 - Previously documented OOF blending leakage concerns are not addressed by this dashboard update. No retraining or methodological correction is claimed.
+
+
+## Public dashboard V2 additions
+- Automatically loads the matching official NASA RUL label file for FD001–FD004 and validates label count against the selected test subset.
+- Adds a concise English-only Overall Explanation to the dashboard report and PDF report.
+- Adds custom-data upload and manual sensor input modes, including single-cycle data entry (prediction intentionally blocked without history) and historical-cycle manual entry.
+- Frozen R1 model artifacts and runtime feature pipeline are unchanged.
+
+- Absolute prediction error is displayed as `abs(predicted RUL − actual RUL)` when ground truth is available; signed error is also included in the benchmark CSV export for diagnostic transparency.
+- Matching label counts were checked against bundled test-engine counts: FD001 100/100, FD002 259/259, FD003 100/100, FD004 248/248.
+- Runtime smoke test re-run after the report change: PASS for FD001–FD004.
