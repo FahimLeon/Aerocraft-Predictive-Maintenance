@@ -15,9 +15,11 @@ The active per-dataset target caps are stored in `artifacts/thesis/results/RESEA
 
 The previous Frozen R1 bundles and interval tables are retained as rollback copies (`*_FrozenR1`). The old `final_*.joblib` artifacts are not overwritten.
 
-## Research metrics shown in the dashboard
+## Official NASA test metrics shown in the dashboard
 
-The displayed dataset metrics are from strict nested outer validation of the Research Selection procedure. RMSE, MAE and NASA are engine-balanced endpoint metrics; R² is the secondary endpoint-level metric. These are validation results, not the measured performance of the final refitted production artifacts and not the selected engine's individual actual RUL/error. The official NASA test labels remain bundled for benchmark-engine actual-RUL display only.
+The dashboard displays only the **Official NASA Test Endpoint** metrics for the active Research Selection deployment. For each official test engine, the app evaluates one prediction at that engine's latest observed cycle against the matching NASA-supplied RUL label. The displayed metrics are: FD001 (100 engines, NASA Score 503.32), FD002 (259, 2520.72), FD003 (100, 903.76), and FD004 (248, 2728.75), alongside MAE, RMSE and R². These endpoint metrics evaluate model predictions; NASA Score is not an input to inference and does not control or adjust predictions.
+
+Custom-data predictions use the same Research Selection inference pipeline. A NASA Score cannot be calculated for arbitrary custom engines unless their true RUL labels are independently known. Strict nested outer-validation results remain preserved in the research artifacts but are not displayed in the live dashboard.
 
 The empirical 80%/90% residual interval tables are recalibrated from the averaged repeated strict nested outer-validation predictions. They are empirical intervals, not formal conformal coverage guarantees.
 
