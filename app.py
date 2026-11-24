@@ -69,6 +69,8 @@ st.markdown("""
 .sidebar-card {padding:.85rem .9rem; margin:.6rem 0; border:1px solid rgba(255,255,255,.16); border-radius:13px; background:rgba(255,255,255,.07);}
 .sidebar-card .k {font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; color:#a9c7d7;}
 .sidebar-card .v {font-size:.9rem; font-weight:650; color:#fff; margin-top:.18rem;}
+.profile-role {font-size:.78rem; font-weight:650; color:#e5f1f6; margin-top:.24rem;}
+.profile-sub {font-size:.72rem; line-height:1.4; color:#c2d7e2; margin-top:.22rem;}
 .hero {padding:1.35rem 1.55rem; border-radius:20px; background:linear-gradient(112deg,#10243b 0%,#174e68 62%,#247f91 100%); color:white; margin:.15rem 0 1rem 0; box-shadow:0 12px 30px rgba(18,55,78,.13);}
 .hero .eyebrow {font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:#b8d9e6; font-weight:750; margin-bottom:.45rem;}
 .hero h1 {font-size:2.05rem; line-height:1.13; margin:0 0 .42rem 0; color:white;}
@@ -127,10 +129,13 @@ with st.sidebar:
     <div class="sidebar-card">
       <div class="k">Researcher</div>
       <div class="v">MD FAHIM MUNTASIR LEON</div>
+      <div class="profile-sub">Dept. of CSE, Daffodil International University</div>
     </div>
     <div class="sidebar-card">
       <div class="k">Research Supervisor</div>
       <div class="v">FATEMA TUJ JOHORA</div>
+      <div class="profile-role">Asst. Professor</div>
+      <div class="profile-sub">Dept. of CSE, Daffodil International University</div>
     </div>
     <div class="tag" style="font-size:.72rem;padding:.65rem .15rem 0 .15rem;">
       Academic research prototype · Not for operational maintenance decisions
@@ -559,12 +564,15 @@ elif page == "About AeroLife":
         st.markdown("### Researcher")
         st.markdown("""
         <div class="sidebar-card" style="background:#fff;border:1px solid #dce6ef;">
-          <div class="k" style="color:#61758b;">Prepared by</div>
+          <div class="k" style="color:#61758b;">Researcher</div>
           <div class="v" style="color:#142c45;font-size:1.05rem;">MD FAHIM MUNTASIR LEON</div>
+          <div style="font-size:.78rem;line-height:1.45;color:#61758b;margin-top:.28rem;">Dept. of CSE, Daffodil International University</div>
         </div>
         <div class="sidebar-card" style="background:#fff;border:1px solid #dce6ef;">
           <div class="k" style="color:#61758b;">Research Supervisor</div>
           <div class="v" style="color:#142c45;font-size:1.0rem;">FATEMA TUJ JOHORA</div>
+          <div style="font-size:.82rem;font-weight:650;color:#334b63;margin-top:.24rem;">Asst. Professor</div>
+          <div style="font-size:.78rem;line-height:1.45;color:#61758b;margin-top:.18rem;">Dept. of CSE, Daffodil International University</div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("### Model information")
