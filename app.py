@@ -15,15 +15,21 @@ from aerolife_runtime import RULPredictor, RAW_COLS, SUBSETS
 
 st.set_page_config(page_title="AeroLife | Aircraft Engine Health", page_icon="✈️", layout="wide", initial_sidebar_state="expanded")
 
-# Official NASA test-set endpoint metrics for the active Research Selection
-# deployment. Each test engine contributes its latest-cycle prediction once;
-# the bundled official RUL labels provide the corresponding ground truth.
-# These are distinct from strict nested outer-validation estimates.
-OFFICIAL_TEST_ENDPOINT_METRICS = {
-    "FD001": {"engines": 100, "r2": 0.8843398208458275, "rmse": 14.132588132111335, "mae": 9.243347182166456, "nasa": 503.3226926552398},
-    "FD002": {"engines": 259, "r2": 0.8731410262268247, "rmse": 19.154536933454057, "mae": 12.135359704155592, "nasa": 2520.720368628079},
-    "FD003": {"engines": 100, "r2": 0.8623245212163506, "rmse": 15.359699542065025, "mae": 9.8368730547405, "nasa": 903.759049459719},
-    "FD004": {"engines": 248, "r2": 0.8960290985323905, "rmse": 17.58093493952763, "mae": 11.6358429640661, "nasa": 2728.7460925144715},
+# Keep the original Research Selection strict-nested metrics for R², RMSE,
+# MAE and validation-engine counts. Only the displayed NASA Score is replaced
+# with the separately verified Official NASA Test Endpoint score.
+RESEARCH_SELECTION_METRICS = {
+    "FD001": {"engines": 100, "r2": 0.905409, "rmse": 17.744212, "mae": 11.556675},
+    "FD002": {"engines": 260, "r2": 0.883943, "rmse": 19.623551, "mae": 13.133444},
+    "FD003": {"engines": 100, "r2": 0.926304, "rmse": 16.341627, "mae": 10.958765},
+    "FD004": {"engines": 249, "r2": 0.881011, "rmse": 20.815945, "mae": 13.741695},
+}
+
+OFFICIAL_TEST_NASA_SCORES = {
+    "FD001": 503.3226926552398,
+    "FD002": 2520.720368628079,
+    "FD003": 903.759049459719,
+    "FD004": 2728.7460925144715,
 }
 
 st.markdown("""
@@ -106,15 +112,16 @@ def ensemble_shap(dataset: str, X: np.ndarray):
     return total_values, total_base, names
 
 def render_metrics(dataset: str):
-    m = OFFICIAL_TEST_ENDPOINT_METRICS[dataset]
-    st.subheader("Official NASA Test Benchmark Performance")
-    st.caption("Official C-MAPSS test-set evaluation: one prediction at the latest observed cycle for each test engine, compared with NASA's supplied RUL labels. These metrics evaluate the active Research Selection deployment; they do not generate or adjust predictions.")
+    m = RESEARCH_SELECTION_METRICS[dataset]
+    official_nasa = OFFICIAL_TEST_NASA_SCORES[dataset]
+    st.subheader("Research Selection Performance")
+    st.caption("R², RMSE and MAE retain the original Research Selection strict nested outer-validation values. Only NASA Score is from the separately evaluated Official NASA Test Endpoint (one latest-cycle prediction per official test engine). These metrics come from different evaluation protocols and must not be read as one single evaluation run.")
     cols = st.columns(5)
-    cols[0].metric("Test engines", f"{m['engines']:,}")
+    cols[0].metric("Validation engines", f"{m['engines']:,}")
     cols[1].metric("MAE", f"{m['mae']:.3f} cycles")
     cols[2].metric("RMSE", f"{m['rmse']:.3f} cycles")
     cols[3].metric("R²", f"{m['r2']:.4f}")
-    cols[4].metric("Official Test NASA Score", f"{m['nasa']:,.2f}")
+    cols[4].metric("Official Test NASA Score", f"{official_nasa:,.1f}")
 
 def render_engine_report(dataset: str, engine_id: int, history: pd.DataFrame, predictor: RULPredictor, actual_rul=None, show_shap: bool = True):
     pred = predictor.predict(history)
@@ -384,12 +391,12 @@ else:
                 except Exception as exc:
                     st.error(f"Manual historical prediction could not be generated: {exc}")
 
-with st.expander("Official NASA test metrics and model notes"):
-    metric_rows = [{"Dataset": d, "Test engines": m["engines"], "MAE (cycles)": m["mae"], "RMSE (cycles)": m["rmse"], "R²": m["r2"], "Official Test NASA Score": m["nasa"]} for d,m in OFFICIAL_TEST_ENDPOINT_METRICS.items()]
+with st.expander("Research Selection metrics and Official Test NASA Score"):
+    metric_rows = [{"Dataset": d, "Validation engines": m["engines"], "Nested MAE": m["mae"], "Nested RMSE": m["rmse"], "Nested R²": m["r2"], "Official Test NASA Score": OFFICIAL_TEST_NASA_SCORES[d]} for d,m in RESEARCH_SELECTION_METRICS.items()]
     st.dataframe(pd.DataFrame(metric_rows), use_container_width=True, hide_index=True)
-    st.markdown("**Active model:** Research Selection CatBoost + XGBoost + LightGBM weighted ensemble. The previous Frozen R1 artifacts are retained as a rollback backup.")
-    st.markdown("**Evaluation:** official NASA test-set endpoint metrics use one latest-cycle prediction per test engine and the supplied NASA RUL labels. NASA Score is an evaluation metric only; it is not an input to inference and does not change any prediction.")
-    st.markdown("**Custom data:** predictions use the same Research Selection inference pipeline. A NASA Score cannot be calculated for arbitrary custom engines unless their true RUL labels are independently known.")
+    st.markdown("**Active model:** Research Selection CatBoost + XGBoost + LightGBM weighted ensemble. The previous Frozen R1 artifacts are retained as a rollback backup. No Research Selection model, ensemble weight, preprocessing step or inference code was changed for this metric-display update.")
+    st.markdown("**Metric provenance:** Nested MAE, RMSE and R² are unchanged from the original Research Selection strict nested outer-validation report. The NASA Score column alone is replaced with the separately verified Official NASA Test Endpoint score, calculated from one latest-cycle prediction per official test engine and NASA's supplied RUL labels. Because the sources are different evaluation protocols, the values should not be interpreted as a single combined evaluation.")
+    st.markdown("**NASA Score:** evaluation only; it is not an input to inference and does not generate or adjust any prediction. Custom-data NASA Score is unavailable unless true RUL labels are independently known.")
     st.markdown("**Intervals:** empirical residual-based 90% intervals calibrated from strict nested outer predictions; not formal conformal coverage guarantees.")
     st.markdown("**Ground truth:** matching NASA RUL_FD001–RUL_FD004 label files are bundled and automatically matched to the selected test subset and engine ID.")
 

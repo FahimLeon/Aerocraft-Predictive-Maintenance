@@ -15,11 +15,9 @@ The active per-dataset target caps are stored in `artifacts/thesis/results/RESEA
 
 The previous Frozen R1 bundles and interval tables are retained as rollback copies (`*_FrozenR1`). The old `final_*.joblib` artifacts are not overwritten.
 
-## Official NASA test metrics shown in the dashboard
+## Metrics shown in the dashboard
 
-The dashboard displays only the **Official NASA Test Endpoint** metrics for the active Research Selection deployment. For each official test engine, the app evaluates one prediction at that engine's latest observed cycle against the matching NASA-supplied RUL label. The displayed metrics are: FD001 (100 engines, NASA Score 503.32), FD002 (259, 2520.72), FD003 (100, 903.76), and FD004 (248, 2728.75), alongside MAE, RMSE and R². These endpoint metrics evaluate model predictions; NASA Score is not an input to inference and does not control or adjust predictions.
-
-Custom-data predictions use the same Research Selection inference pipeline. A NASA Score cannot be calculated for arbitrary custom engines unless their true RUL labels are independently known. Strict nested outer-validation results remain preserved in the research artifacts but are not displayed in the live dashboard.
+The dashboard preserves the original Research Selection strict nested outer-validation values for MAE, RMSE and R², along with the original validation-engine counts. The **NASA Score field alone** displays the separately verified Official NASA Test Endpoint score for the active Research Selection model, using one latest-cycle prediction per official test engine and NASA's supplied RUL labels. These values come from different evaluation protocols and are explicitly labelled; they must not be interpreted as one single evaluation run. NASA Score is an evaluation metric only and does not feed into or alter predictions.
 
 The empirical 80%/90% residual interval tables are recalibrated from the averaged repeated strict nested outer-validation predictions. They are empirical intervals, not formal conformal coverage guarantees.
 

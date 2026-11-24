@@ -32,9 +32,8 @@ A LightGBM feature-name warning appears during inference because the runtime pas
 
 ## Important limits
 
-- The dashboard's primary metrics display is now the Official NASA Test Endpoint evaluation for the active Research Selection model. It uses one latest-cycle prediction per official test engine and the matching NASA RUL labels. Strict nested outer-validation results remain in the research artifacts and are not shown in the live dashboard.
-- Official endpoint metrics (FD001 / FD002 / FD003 / FD004): NASA Score 503.3227 / 2520.7204 / 903.7590 / 2728.7461; RMSE 14.1326 / 19.1545 / 15.3597 / 17.5809; MAE 9.2433 / 12.1354 / 9.8369 / 11.6358; R² 0.8843 / 0.8731 / 0.8623 / 0.8960.
-- NASA Score is an evaluation metric only. It does not feed into or alter the prediction pipeline. Custom-data NASA Score is not available unless true RUL labels are supplied independently.
-- Runtime smoke tests verify artifact loading and prediction execution, not predictive accuracy. Endpoint metric values are the previously verified latest-cycle predictions for these Research Selection artifacts.
+- The dashboard retains the original Research Selection strict nested outer-validation values for MAE, RMSE and R² (and their validation-engine counts). Only the NASA Score display is replaced with the separately verified Official NASA Test Endpoint score for the active Research Selection model. The sources are deliberately labelled as different evaluation protocols and are not presented as one combined evaluation.
+- Official Test Endpoint NASA Scores (FD001 / FD002 / FD003 / FD004): 503.3227 / 2520.7204 / 903.7590 / 2728.7461. Each score uses one latest-cycle prediction per official test engine and the supplied NASA RUL labels.
+- The runtime smoke tests verify artifact loading and prediction execution, not predictive accuracy. The endpoint scores are previously verified results for the active Research Selection artifacts; this packaging step did not recalculate endpoint accuracy.
 - A live Streamlit browser/hosted deployment test was not run in this build environment. After pushing, verify the app on the hosting platform.
 - NASA C-MAPSS is simulated benchmark data. This academic demonstration is not certified for operational aircraft maintenance.
