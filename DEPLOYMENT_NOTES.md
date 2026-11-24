@@ -21,3 +21,11 @@ The final deployment configuration is not a fold-specific model. It aggregates t
 ## GitHub Desktop
 
 Commit and push the contents of this ZIP's project root to the same repository as the previous dashboard. Keep the folder structure intact. After deployment, check all four NASA datasets and both Custom Data upload/manual-history workflows.
+
+
+## Interface refresh
+
+- Navigation is provided by a Streamlit native sidebar drawer, collapsed by default. Use the top-left menu control to open/close it.
+- Workspace options: Overview, NASA Benchmark Explorer, Custom Data Prediction, About AeroLife.
+- The About page displays the project title, author (MD FAHIM MUNTASIR LEON) and supervisor (FATEMA TUJ JOHORA).
+- No prediction, preprocessing, feature, model artifact, ensemble weight or inference-runtime files were changed for this interface refresh.

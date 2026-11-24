@@ -13,11 +13,11 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 from aerolife_runtime import RULPredictor, RAW_COLS, SUBSETS
 
-st.set_page_config(page_title="AeroLife | Aircraft Engine Health", page_icon="✈️", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AeroLife | Aircraft Engine Health", page_icon="✈️", layout="wide", initial_sidebar_state="collapsed")
 
-# Keep the original Research Selection strict-nested metrics for R², RMSE,
-# MAE and validation-engine counts. Only the displayed NASA Score is replaced
-# with the separately verified Official NASA Test Endpoint score.
+# Research Selection metrics remain the primary research reference. The NASA
+# Score displayed beside them is explicitly the historical Frozen R1 official-
+# test score, not a score calculated from the active Research Selection model.
 RESEARCH_SELECTION_METRICS = {
     "FD001": {"engines": 100, "r2": 0.905409, "rmse": 17.744212, "mae": 11.556675},
     "FD002": {"engines": 260, "r2": 0.883943, "rmse": 19.623551, "mae": 13.133444},
@@ -25,25 +25,103 @@ RESEARCH_SELECTION_METRICS = {
     "FD004": {"engines": 249, "r2": 0.881011, "rmse": 20.815945, "mae": 13.741695},
 }
 
-OFFICIAL_TEST_NASA_SCORES = {
-    "FD001": 503.3226926552398,
-    "FD002": 2520.720368628079,
-    "FD003": 903.759049459719,
-    "FD004": 2728.7460925144715,
+FROZEN_R1_OFFICIAL_NASA = {
+    "FD001": {"test_engines": 100, "nasa": 506.273},
+    "FD002": {"test_engines": 259, "nasa": 2951.298},
+    "FD003": {"test_engines": 100, "nasa": 863.645},
+    "FD004": {"test_engines": 248, "nasa": 2731.377},
 }
 
 st.markdown("""
 <style>
-.block-container {padding-top: 1.5rem; padding-bottom: 2rem; max-width: 1500px;}
-.hero {padding: 1.35rem 1.5rem; border-radius: 18px; background: linear-gradient(115deg,#10243b,#1b4965); color: white; margin-bottom: 1rem;}
-.hero h1 {font-size: 2rem; margin: 0 0 .35rem 0; color: white;}
-.hero p {margin: 0; color: #d9eaf4;}
-.small-note {font-size: .85rem; color: #64748b;}
+:root {
+  --al-ink: #13243a;
+  --al-muted: #63758a;
+  --al-blue: #176b87;
+  --al-cyan: #42a5b8;
+  --al-line: #dce6ef;
+  --al-surface: #ffffff;
+}
+.block-container {padding-top: 1.15rem; padding-bottom: 2.4rem; max-width: 1480px;}
+[data-testid="stAppViewContainer"] {background: #f5f8fc;}
+[data-testid="stHeader"] {background: rgba(245,248,252,.86);}
+[data-testid="stSidebar"] {background: linear-gradient(180deg,#10243b 0%,#14364c 58%,#17465a 100%); border-right: 1px solid rgba(255,255,255,.10);}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {color:#eef6fb;}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {color:#d8e6ef;}
+[data-testid="stSidebar"] [data-testid="stRadio"] label {color:#edf5fa !important;}
+[data-testid="stSidebar"] [data-testid="stRadio"] > label {font-weight:700; letter-spacing:.04em;}
+.sidebar-brand {padding: .6rem .15rem 1rem .15rem; border-bottom:1px solid rgba(255,255,255,.16); margin-bottom:1rem;}
+.sidebar-brand .mark {font-size:1.75rem; font-weight:800; letter-spacing:.04em; color:#fff;}
+.sidebar-brand .tag {font-size:.77rem; color:#b9d2df; line-height:1.45;}
+.sidebar-card {padding:.85rem .9rem; margin:.6rem 0; border:1px solid rgba(255,255,255,.16); border-radius:13px; background:rgba(255,255,255,.07);}
+.sidebar-card .k {font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; color:#a9c7d7;}
+.sidebar-card .v {font-size:.9rem; font-weight:650; color:#fff; margin-top:.18rem;}
+.hero {padding:1.35rem 1.55rem; border-radius:20px; background:linear-gradient(112deg,#10243b 0%,#174e68 62%,#247f91 100%); color:white; margin:.15rem 0 1rem 0; box-shadow:0 12px 30px rgba(18,55,78,.13);}
+.hero .eyebrow {font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:#b8d9e6; font-weight:750; margin-bottom:.45rem;}
+.hero h1 {font-size:2.05rem; line-height:1.13; margin:0 0 .42rem 0; color:white;}
+.hero p {margin:0; color:#e0eef4; font-size:.96rem;}
+.hero .hero-foot {margin-top:.9rem; font-size:.78rem; color:#b9d8e4;}
+.section-kicker {font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; color:#24748a; font-weight:800; margin-bottom:.15rem;}
+.page-title {font-size:1.45rem; font-weight:780; color:var(--al-ink); margin:.2rem 0 .25rem 0;}
+.page-subtitle {color:var(--al-muted); margin-bottom:1.15rem;}
+.small-note {font-size:.84rem; color:var(--al-muted);}
+div[data-testid="stMetric"] {background:#fff; border:1px solid var(--al-line); border-radius:15px; padding:.8rem .95rem; box-shadow:0 3px 10px rgba(25,55,80,.035);}
+div[data-testid="stMetricLabel"] p {color:#62758b; font-size:.78rem; font-weight:650;}
+div[data-testid="stMetricValue"] {color:#142c45; font-weight:780;}
+div.stButton > button, div[data-testid="stDownloadButton"] > button {border-radius:11px; font-weight:650; min-height:2.6rem;}
+div.stButton > button[kind="primary"] {background:linear-gradient(100deg,#176b87,#218ca0); border:0;}
+div[data-testid="stExpander"] {border:1px solid var(--al-line); border-radius:13px; background:#fff;}
+[data-testid="stDataFrame"] {border:1px solid var(--al-line); border-radius:12px; overflow:hidden;}
+hr {border-color:#dce6ef;}
+@media (max-width: 720px) {
+  .block-container {padding: .7rem .75rem 1.8rem .75rem;}
+  .hero {padding:1.15rem 1.1rem; border-radius:15px;}
+  .hero h1 {font-size:1.65rem;}
+}
 </style>
-<div class="hero"><h1>✈️ AeroLife</h1><p>Aircraft Engine Health Intelligence · Remaining Useful Life Prediction · Explainable AI</p></div>
+<div class="hero">
+  <div class="eyebrow">Predictive Maintenance · Research Intelligence</div>
+  <h1>✈️ AeroLife</h1>
+  <p>Aircraft engine Remaining Useful Life prediction with a weighted ensemble and explainable AI.</p>
+  <div class="hero-foot">NASA C-MAPSS · FD001–FD004 · CatBoost + XGBoost + LightGBM</div>
+</div>
 """, unsafe_allow_html=True)
-st.caption("NASA C-MAPSS research benchmark · Research Selection · CatBoost + XGBoost + LightGBM weighted ensemble")
-st.warning("Research demonstration only. NASA C-MAPSS data are simulated benchmark data, not live aircraft telemetry. Outputs must not be used as certified or operational maintenance instructions.")
+
+# Native Streamlit sidebar: collapsed by default, opens as a slide-in drawer
+# from the app menu button and can be dismissed with the same control.
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-brand">
+      <div class="mark">✈ AeroLife</div>
+      <div class="tag">Aircraft Engine Health Intelligence<br/>Research dashboard</div>
+    </div>
+    """, unsafe_allow_html=True)
+    page = st.radio(
+        "NAVIGATION",
+        ["Overview", "NASA Benchmark Explorer", "Custom Data Prediction", "About AeroLife"],
+        index=0,
+        key="aerolife_navigation",
+    )
+    st.markdown("""
+    <div class="sidebar-card">
+      <div class="k">Active deployment</div>
+      <div class="v">Research Selection Ensemble</div>
+    </div>
+    <div class="sidebar-card">
+      <div class="k">Benchmark scope</div>
+      <div class="v">4 NASA C-MAPSS subsets</div>
+    </div>
+    <div class="sidebar-card">
+      <div class="k">Project researcher</div>
+      <div class="v">MD FAHIM MUNTASIR LEON</div>
+    </div>
+    <div class="tag" style="font-size:.72rem;padding:.65rem .15rem 0 .15rem;">
+      Academic research prototype · Not for operational maintenance decisions
+    </div>
+    """, unsafe_allow_html=True)
+
+st.caption("Research Selection is the active prediction model · NASA C-MAPSS simulated benchmark data")
+st.warning("Academic research prototype. NASA C-MAPSS is simulated benchmark data, not live aircraft telemetry. Outputs are not certified or intended as standalone operational maintenance instructions.")
 
 @st.cache_resource(show_spinner="Loading Research Selection models...")
 def load_predictor(dataset: str):
@@ -112,16 +190,17 @@ def ensemble_shap(dataset: str, X: np.ndarray):
     return total_values, total_base, names
 
 def render_metrics(dataset: str):
-    m = RESEARCH_SELECTION_METRICS[dataset]
-    official_nasa = OFFICIAL_TEST_NASA_SCORES[dataset]
-    st.subheader("Research Selection Performance")
-    st.caption("R², RMSE and MAE retain the original Research Selection strict nested outer-validation values. Only NASA Score is from the separately evaluated Official NASA Test Endpoint (one latest-cycle prediction per official test engine). These metrics come from different evaluation protocols and must not be read as one single evaluation run.")
+    research = RESEARCH_SELECTION_METRICS[dataset]
+    official = FROZEN_R1_OFFICIAL_NASA[dataset]
+    st.subheader("Dataset Performance")
+    st.caption("R², RMSE and MAE: Research Selection strict nested validation. NASA Score: historical Frozen R1 official NASA test endpoint; shown as a separate reference, not as a Research Selection score.")
     cols = st.columns(5)
-    cols[0].metric("Validation engines", f"{m['engines']:,}")
-    cols[1].metric("MAE", f"{m['mae']:.3f} cycles")
-    cols[2].metric("RMSE", f"{m['rmse']:.3f} cycles")
-    cols[3].metric("R²", f"{m['r2']:.4f}")
-    cols[4].metric("Official Test NASA Score", f"{official_nasa:,.1f}")
+    cols[0].metric("Nested validation engines", f"{research['engines']:,}")
+    cols[1].metric("MAE · Research Selection", f"{research['mae']:.3f} cycles")
+    cols[2].metric("RMSE · Research Selection", f"{research['rmse']:.3f} cycles")
+    cols[3].metric("R² · Research Selection", f"{research['r2']:.4f}")
+    cols[4].metric("Frozen R1 Official NASA", f"{official['nasa']:,.1f}", help=f"Historical Frozen R1 score on {official['test_engines']} official NASA test engines. This is not the Research Selection NASA score.")
+    st.caption(f"Frozen R1 NASA reference population: {official['test_engines']} official test engines. Research Selection validation population: {research['engines']} development engines.")
 
 def render_engine_report(dataset: str, engine_id: int, history: pd.DataFrame, predictor: RULPredictor, actual_rul=None, show_shap: bool = True):
     pred = predictor.predict(history)
@@ -257,9 +336,34 @@ def render_engine_report(dataset: str, engine_id: int, history: pd.DataFrame, pr
     )
     return pred
 
-mode = st.radio("Choose a workspace", ["NASA Benchmark Explorer", "Custom Data Prediction"], horizontal=True, index=0)
+if page == "Overview":
+    st.markdown('<div class="section-kicker">Workspace overview</div><div class="page-title">Aircraft Health Intelligence</div><div class="page-subtitle">A unified workspace for benchmark exploration, RUL prediction and explainable model analysis.</div>', unsafe_allow_html=True)
+    overview_cols = st.columns(4)
+    overview_cols[0].metric("Benchmark subsets", "04")
+    overview_cols[1].metric("Development engines", "709")
+    overview_cols[2].metric("Official test engines", "707")
+    overview_cols[3].metric("Sensor channels", "21")
+    st.markdown("### Explore AeroLife")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**NASA Benchmark Explorer**")
+        st.write("Inspect the preloaded FD001–FD004 test engines, generate per-engine RUL reports, review sensor trends and explore SHAP explanations.")
+        st.caption("Open this workspace from the slide-in navigation panel.")
+    with c2:
+        st.markdown("**Custom Data Prediction**")
+        st.write("Upload a CSV/NASA TXT file or enter historical sensor readings manually to generate predictions with the active Research Selection model.")
+        st.caption("Open this workspace from the slide-in navigation panel.")
+    with st.expander("Research performance snapshot", expanded=True):
+        overview_rows = []
+        for subset in SUBSETS:
+            r = RESEARCH_SELECTION_METRICS[subset]
+            f = FROZEN_R1_OFFICIAL_NASA[subset]
+            overview_rows.append({"Dataset": subset, "Research validation engines": r["engines"], "Research Selection R²": r["r2"], "Research Selection RMSE": r["rmse"], "Research Selection MAE": r["mae"], "Frozen R1 official NASA Score": f["nasa"]})
+        st.dataframe(pd.DataFrame(overview_rows), use_container_width=True, hide_index=True)
+        st.caption("Research Selection regression metrics are strict nested validation estimates. NASA Score values are historical Frozen R1 official-test references. These are different evaluation protocols and are labelled separately.")
+    st.info("Use the menu icon at the top-left to open the slide-in navigation panel. On smaller screens, the panel overlays the workspace and can be closed from the same menu control.")
 
-if mode == "NASA Benchmark Explorer":
+elif page == "NASA Benchmark Explorer":
     st.markdown("### Explore the preloaded NASA benchmark")
     st.write("Select a subset and engine ID. The benchmark engine histories are already included in this app—no upload is needed.")
     dataset = st.selectbox("NASA dataset", SUBSETS, key="benchmark_dataset")
@@ -297,7 +401,8 @@ if mode == "NASA Benchmark Explorer":
     except Exception as exc:
         st.error(f"Could not load this benchmark subset: {exc}")
 
-else:
+elif page == "Custom Data Prediction":
+    st.markdown('<div class="section-kicker">Prediction workspace</div><div class="page-title">Custom Data Prediction</div><div class="page-subtitle">Run the Research Selection model on uploaded files or complete historical sensor records.</div>', unsafe_allow_html=True)
     st.markdown("### Predict using your own engine data")
     st.write("Choose upload-based prediction or enter sensor readings manually. The selected dataset must match the data's operating regime/fault subset.")
     dataset = st.selectbox("Select the matching model subset", SUBSETS, key="custom_dataset")
@@ -391,14 +496,55 @@ else:
                 except Exception as exc:
                     st.error(f"Manual historical prediction could not be generated: {exc}")
 
-with st.expander("Research Selection metrics and Official Test NASA Score"):
-    metric_rows = [{"Dataset": d, "Validation engines": m["engines"], "Nested MAE": m["mae"], "Nested RMSE": m["rmse"], "Nested R²": m["r2"], "Official Test NASA Score": OFFICIAL_TEST_NASA_SCORES[d]} for d,m in RESEARCH_SELECTION_METRICS.items()]
-    st.dataframe(pd.DataFrame(metric_rows), use_container_width=True, hide_index=True)
-    st.markdown("**Active model:** Research Selection CatBoost + XGBoost + LightGBM weighted ensemble. The previous Frozen R1 artifacts are retained as a rollback backup. No Research Selection model, ensemble weight, preprocessing step or inference code was changed for this metric-display update.")
-    st.markdown("**Metric provenance:** Nested MAE, RMSE and R² are unchanged from the original Research Selection strict nested outer-validation report. The NASA Score column alone is replaced with the separately verified Official NASA Test Endpoint score, calculated from one latest-cycle prediction per official test engine and NASA's supplied RUL labels. Because the sources are different evaluation protocols, the values should not be interpreted as a single combined evaluation.")
-    st.markdown("**NASA Score:** evaluation only; it is not an input to inference and does not generate or adjust any prediction. Custom-data NASA Score is unavailable unless true RUL labels are independently known.")
-    st.markdown("**Intervals:** empirical residual-based 90% intervals calibrated from strict nested outer predictions; not formal conformal coverage guarantees.")
-    st.markdown("**Ground truth:** matching NASA RUL_FD001–RUL_FD004 label files are bundled and automatically matched to the selected test subset and engine ID.")
+elif page == "About AeroLife":
+    st.markdown('<div class="section-kicker">Project information</div><div class="page-title">About AeroLife</div><div class="page-subtitle">An explainable machine-learning research prototype for turbofan engine prognostics.</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="hero" style="margin-top:.6rem;">
+      <div class="eyebrow">Research project</div>
+      <h1 style="font-size:1.55rem;">Aircraft Engine Predictive Maintenance</h1>
+      <p>Remaining Useful Life estimation using a hybrid ensemble machine-learning framework with Explainable Artificial Intelligence.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    about_left, about_right = st.columns([1.15, .85], gap="large")
+    with about_left:
+        st.markdown("### Project overview")
+        st.write("AeroLife investigates data-driven Remaining Useful Life (RUL) estimation for turbofan engines using the NASA C-MAPSS benchmark. It combines complementary tree-based learners and explainability methods to make model predictions easier to inspect and interpret.")
+        st.markdown("### Methodology")
+        st.write("The active Research Selection model uses a weighted ensemble of CatBoost, XGBoost and LightGBM, supported by sensor-history feature engineering and SHAP-based explanations. The dashboard provides benchmark exploration, custom-data inference, sensor trend analysis and downloadable engine reports.")
+        st.markdown("### Dataset and scope")
+        st.write("The study uses NASA C-MAPSS subsets FD001, FD002, FD003 and FD004, including three operating settings and 21 sensor channels. Benchmark data are simulated and are used here for academic research and demonstration.")
+    with about_right:
+        st.markdown("### Researcher")
+        st.markdown("""
+        <div class="sidebar-card" style="background:#fff;border:1px solid #dce6ef;">
+          <div class="k" style="color:#61758b;">Prepared by</div>
+          <div class="v" style="color:#142c45;font-size:1.05rem;">MD FAHIM MUNTASIR LEON</div>
+        </div>
+        <div class="sidebar-card" style="background:#fff;border:1px solid #dce6ef;">
+          <div class="k" style="color:#61758b;">Supervisor</div>
+          <div class="v" style="color:#142c45;font-size:1.0rem;">FATEMA TUJ JOHORA</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("### Model information")
+        st.markdown("""
+        - **Active model:** Research Selection weighted ensemble
+        - **Algorithms:** CatBoost · XGBoost · LightGBM
+        - **Explainability:** SHAP
+        - **Prediction target:** Remaining Useful Life (cycles)
+        """)
+    st.warning("Research prototype only. AeroLife is not a medical, aviation certification or operational aircraft-maintenance system. Predictions must not be used as standalone maintenance decisions. Unusual inputs can produce unreliable estimates, and benchmark performance does not guarantee real-world performance.")
+
+if page in ("NASA Benchmark Explorer", "Overview"):
+    with st.expander("Dataset metrics and model notes"):
+        metric_rows = []
+        for d in SUBSETS:
+            research = RESEARCH_SELECTION_METRICS[d]
+            official = FROZEN_R1_OFFICIAL_NASA[d]
+            metric_rows.append({"Dataset": d, "Research validation engines": research["engines"], "Research Selection MAE": research["mae"], "Research Selection RMSE": research["rmse"], "Research Selection R²": research["r2"], "Frozen R1 official NASA Score": official["nasa"], "Frozen R1 official test engines": official["test_engines"]})
+        st.dataframe(pd.DataFrame(metric_rows), use_container_width=True, hide_index=True)
+        st.markdown("**Active prediction model:** Research Selection CatBoost + XGBoost + LightGBM weighted ensemble. Frozen R1 artifacts are retained as a separate rollback/reference set.")
+        st.markdown("**Metric provenance:** R², RMSE and MAE are Research Selection strict nested-validation results. NASA Score is the historical Frozen R1 official-test score and is not attributed to Research Selection.")
+        st.markdown("**Prediction rule:** NASA Score evaluates labelled benchmark predictions; it does not generate or adjust an engine's predicted RUL. Custom data cannot receive a NASA Score unless matching ground-truth RUL labels are independently available.")
 
 st.divider()
-st.caption("AeroLife · Academic research and demonstration · Research Selection deployment · Not certified for operational aircraft maintenance")
+st.caption("AeroLife · Research by MD FAHIM MUNTASIR LEON · Supervisor: FATEMA TUJ JOHORA · Academic prototype, not certified for operational aircraft maintenance")

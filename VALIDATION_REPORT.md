@@ -2,7 +2,9 @@
 
 ## Build contents
 
-- Existing Streamlit dashboard structure retained (`app.py`, `aerolife_runtime.py`, benchmark data, custom input workflows, SHAP/report/download code).
+- Existing Streamlit dashboard functionality retained (`aerolife_runtime.py`, benchmark data, custom input workflows, SHAP/report/download code); `app.py` received a presentation-only redesign.
+- Added a native Streamlit slide-in navigation drawer, collapsed by default, with Overview, NASA Benchmark Explorer, Custom Data Prediction and About AeroLife sections.
+- Added project attribution for MD FAHIM MUNTASIR LEON and supervisor FATEMA TUJ JOHORA.
 - Active `ensemble_FD001.json` through `ensemble_FD004.json` now load Research Selection bundles.
 - Previous Frozen R1 ensemble JSONs and interval tables are preserved with `_FrozenR1` suffixes; original `final_*.joblib` artifacts are unchanged.
 - Research Selection selection log, nested metrics and outer predictions are bundled under `artifacts/thesis/strict_nested/`.
@@ -21,6 +23,12 @@ The selection log contains 15 inner-only selections per dataset. The final deplo
 
 The four uploaded training files reproduce the original development-data fingerprint `2ee5a4b9b0f8fe1a06e0` (709 engines; 160,359 rows). The three T200 base learners and feature pipeline were reused from Frozen R1 after matching data fingerprint, target and family hyperparameter metadata. New CatBoost, XGBoost and LightGBM T160 members were fitted on all 709 development engines for FD002.
 
+## Dashboard metric provenance
+
+- Research Selection R², RMSE and MAE remain the strict nested outer-validation results.
+- The displayed NASA Score is explicitly the historical Frozen R1 official NASA test-endpoint reference, dataset by dataset. It is not attributed to Research Selection.
+- Official Frozen R1 NASA scores: FD001 506.273; FD002 2951.298; FD003 863.645; FD004 2731.377.
+
 ## Checks performed
 
 - `python -m py_compile app.py aerolife_runtime.py tests/*.py` — PASS.
@@ -32,8 +40,7 @@ A LightGBM feature-name warning appears during inference because the runtime pas
 
 ## Important limits
 
-- The dashboard retains the original Research Selection strict nested outer-validation values for MAE, RMSE and R² (and their validation-engine counts). Only the NASA Score display is replaced with the separately verified Official NASA Test Endpoint score for the active Research Selection model. The sources are deliberately labelled as different evaluation protocols and are not presented as one combined evaluation.
-- Official Test Endpoint NASA Scores (FD001 / FD002 / FD003 / FD004): 503.3227 / 2520.7204 / 903.7590 / 2728.7461. Each score uses one latest-cycle prediction per official test engine and the supplied NASA RUL labels.
-- The runtime smoke tests verify artifact loading and prediction execution, not predictive accuracy. The endpoint scores are previously verified results for the active Research Selection artifacts; this packaging step did not recalculate endpoint accuracy.
+- The displayed Research Selection metrics are strict nested outer-validation estimates for the selection procedure. They are not represented as measured accuracy of the final all-development-data refit artifacts.
+- The runtime smoke tests verify artifact loading and prediction execution, not predictive accuracy. No official-test accuracy was recalculated as part of this deployment build.
 - A live Streamlit browser/hosted deployment test was not run in this build environment. After pushing, verify the app on the hosting platform.
 - NASA C-MAPSS is simulated benchmark data. This academic demonstration is not certified for operational aircraft maintenance.
