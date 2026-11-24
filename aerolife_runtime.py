@@ -480,51 +480,10 @@ def ensemble_bundle_key(final_entry: dict, member_keys: dict) -> dict:
 
 
 def validate_ensemble_bundle(bundle: dict, root: Path) -> None:
-    """Validate either the preserved Frozen R1 backup format or the active Research Selection bundle."""
+    """Raises ValueError unless the bundle is a current-format bundle whose members and weights
+    equal the frozen selection and whose member artifacts on disk carry the recorded keys.
+    A two-model bundle from the 31 Oct version is therefore never accepted."""
     ds = bundle.get("dataset")
-    if bundle.get("deployment_mode") == "Research Selection":
-        root = Path(root)
-        key = bundle.get("bundle_key") or {}
-        if fingerprint(key) != bundle.get("bundle_fingerprint"):
-            raise ValueError(f"{ds}: Research Selection bundle fingerprint mismatch")
-        selection_path = root / bundle["frozen_file"]
-        selection = json.loads(selection_path.read_text())
-        frozen = selection.get("final", {}).get(ds)
-        if not frozen:
-            raise ValueError(f"{ds}: Research Selection deployment config missing")
-        want = [(m["member_id"], float(m["weight"])) for m in frozen["members"]]
-        have = [(m["member_id"], float(m["weight"])) for m in bundle["members"]]
-        keyed = [(m["member_id"], float(m["weight"])) for m in key.get("members", [])]
-        if not (want == have == keyed) or frozen.get("candidate_id") != bundle.get("candidate_id"):
-            raise ValueError(f"{ds}: Research Selection bundle differs from deployment config")
-        weights = np.asarray([w for _, w in have], dtype=float)
-        if abs(weights.sum() - 1.0) > 1e-8 or weights.min() < MIN_MEMBER_WEIGHT - 1e-8:
-            raise ValueError(f"{ds}: invalid Research Selection blend weights")
-        if len({m.get("family") for m in bundle["members"]}) < 3:
-            raise ValueError(f"{ds}: Research Selection requires all three model families")
-        expected_hashes = key.get("artifact_sha256", {})
-        for m in bundle["members"]:
-            artifact = root / bundle["artifacts"][m["member_id"]]
-            if not artifact.is_file():
-                raise FileNotFoundError(f"{ds}: missing Research Selection artifact {artifact}")
-            if m["member_id"] in expected_hashes:
-                digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
-                if digest != expected_hashes[m["member_id"]]:
-                    raise ValueError(f"{ds}: artifact checksum mismatch for {m['member_id']}")
-            meta_path = artifact.with_suffix(".meta.json")
-            if not meta_path.is_file():
-                raise FileNotFoundError(f"{ds}: missing model metadata {meta_path}")
-            meta = json.loads(meta_path.read_text())
-            meta_cap = meta.get("cap") or meta.get("target") or meta.get("key", {}).get("target")
-            if str(meta_cap) != str(bundle.get("cap")):
-                raise ValueError(f"{ds}: model cap metadata mismatch for {m['member_id']}")
-        pipeline = root / bundle["artifacts"]["feature_pipeline"]
-        if not pipeline.is_file():
-            raise FileNotFoundError(f"{ds}: missing Research Selection feature pipeline")
-        expected_pipeline_hash = key.get("feature_pipeline_sha256")
-        if expected_pipeline_hash and hashlib.sha256(pipeline.read_bytes()).hexdigest() != expected_pipeline_hash:
-            raise ValueError(f"{ds}: Research Selection feature pipeline checksum mismatch")
-        return
     if bundle.get("bundle_version") != ENSEMBLE_BUNDLE_VERSION:
         raise ValueError(f"{ds}: stale ensemble bundle (version {bundle.get('bundle_version')!r}, expected "
                          f"{ENSEMBLE_BUNDLE_VERSION!r}); re-run Section 17")
@@ -586,7 +545,7 @@ class RULPredictor:
 
     """
     Predict RUL for engines of one C-MAPSS dataset
-    using the active Research Selection ensemble artifacts (with Frozen R1 retained as backup).
+    using frozen R1 ensemble artifacts.
 
     Input:
         DataFrame with unit, cycle, os1-os3, s1-s21.

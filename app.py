@@ -15,14 +15,13 @@ from aerolife_runtime import RULPredictor, RAW_COLS, SUBSETS
 
 st.set_page_config(page_title="AeroLife | Aircraft Engine Health", page_icon="✈️", layout="wide", initial_sidebar_state="expanded")
 
-# Primary research metrics: strict nested outer-validation results for the
-# Research Selection procedure. RMSE/MAE/NASA are engine-balanced endpoint
-# metrics; R² is the secondary endpoint-level metric.
-RESEARCH_SELECTION_METRICS = {
-    "FD001": {"engines": 100, "r2": 0.905409, "rmse": 17.744212, "mae": 11.556675, "nasa": 280.485375},
-    "FD002": {"engines": 260, "r2": 0.883943, "rmse": 19.623551, "mae": 13.133444, "nasa": 345.193985},
-    "FD003": {"engines": 100, "r2": 0.926304, "rmse": 16.341627, "mae": 10.958765, "nasa": 198.953146},
-    "FD004": {"engines": 249, "r2": 0.881011, "rmse": 20.815945, "mae": 13.741695, "nasa": 35276.768677},
+# Previously recorded official-test results from the thesis evaluation. These are
+# clearly separated from the live engine prediction and are not recomputed here.
+THESIS_TEST_METRICS = {
+    "FD001": {"engines": 100, "r2": 0.8843, "rmse": 14.133, "mae": 9.268, "nasa": 506},
+    "FD002": {"engines": 259, "r2": 0.8711, "rmse": 19.310, "mae": 12.356, "nasa": 2951},
+    "FD003": {"engines": 100, "r2": 0.8629, "rmse": 15.330, "mae": 9.870, "nasa": 864},
+    "FD004": {"engines": 248, "r2": 0.8960, "rmse": 17.586, "mae": 11.643, "nasa": 2731},
 }
 
 st.markdown("""
@@ -35,10 +34,10 @@ st.markdown("""
 </style>
 <div class="hero"><h1>✈️ AeroLife</h1><p>Aircraft Engine Health Intelligence · Remaining Useful Life Prediction · Explainable AI</p></div>
 """, unsafe_allow_html=True)
-st.caption("NASA C-MAPSS research benchmark · Research Selection · CatBoost + XGBoost + LightGBM weighted ensemble")
+st.caption("NASA C-MAPSS research benchmark · Frozen R1 CatBoost + XGBoost + LightGBM weighted ensemble")
 st.warning("Research demonstration only. NASA C-MAPSS data are simulated benchmark data, not live aircraft telemetry. Outputs must not be used as certified or operational maintenance instructions.")
 
-@st.cache_resource(show_spinner="Loading Research Selection models...")
+@st.cache_resource(show_spinner="Loading frozen R1 models...")
 def load_predictor(dataset: str):
     return RULPredictor(dataset, root=HERE)
 
@@ -105,15 +104,15 @@ def ensemble_shap(dataset: str, X: np.ndarray):
     return total_values, total_base, names
 
 def render_metrics(dataset: str):
-    m = RESEARCH_SELECTION_METRICS[dataset]
+    m = THESIS_TEST_METRICS[dataset]
     st.subheader("Dataset Performance")
-    st.caption("Strict nested outer-validation results for Research Selection. RMSE, MAE and NASA are engine-balanced endpoint metrics; R² is secondary.")
+    st.caption("Previously recorded thesis official-test evaluation metrics. These are dataset-level results, not the selected engine's individual actual RUL/error.")
     cols = st.columns(5)
-    cols[0].metric("Validation engines", f"{m['engines']:,}")
+    cols[0].metric("Test engines", f"{m['engines']:,}")
     cols[1].metric("MAE", f"{m['mae']:.3f} cycles")
     cols[2].metric("RMSE", f"{m['rmse']:.3f} cycles")
     cols[3].metric("R²", f"{m['r2']:.4f}")
-    cols[4].metric("NASA Score", f"{m['nasa']:,.1f}")
+    cols[4].metric("NASA Score", f"{m['nasa']:,}")
 
 def render_engine_report(dataset: str, engine_id: int, history: pd.DataFrame, predictor: RULPredictor, actual_rul=None, show_shap: bool = True):
     pred = predictor.predict(history)
@@ -317,7 +316,7 @@ else:
                         st.dataframe(raw.head(8), use_container_width=True)
                         if st.button("Predict external engine data", type="primary", key="predict_uploaded_custom"):
                             predictor = load_predictor(dataset)
-                            with st.spinner("Running Research Selection prediction pipeline..."):
+                            with st.spinner("Running frozen R1 prediction pipeline..."):
                                 result = predictor.predict(raw)
                             st.subheader("External data prediction results")
                             st.dataframe(result, use_container_width=True, hide_index=True)
@@ -331,7 +330,7 @@ else:
     else:
         manual_mode = st.radio("Manual input mode", ["Single Cycle Input", "Historical Cycle Input"], horizontal=True, key="manual_input_mode")
         if manual_mode == "Single Cycle Input":
-            st.info("A single observation can be entered here, but the Research Selection model uses historical rolling, slope, drift, and health-index features. A valid prediction cannot be generated from one cycle alone. Enter the engine's full cycle history in Historical Cycle Input to generate a prediction.")
+            st.info("A single observation can be entered here, but the frozen R1 model uses historical rolling, slope, drift, and health-index features. A valid prediction cannot be generated from one cycle alone. Enter the engine's full cycle history in Historical Cycle Input to generate a prediction.")
             engine_id_manual = st.number_input("Engine ID", min_value=1, value=1, step=1, key="single_engine_id")
             cycle_manual = st.number_input("Current cycle", min_value=1, value=1, step=1, key="single_cycle")
             st.markdown("**Operating settings**")
@@ -344,7 +343,7 @@ else:
                 for j in range(base, min(base + 7, 21)):
                     sensor_values.append(cols[j-base].number_input(f"S{j+1}", value=0.0, format="%.6f", key=f"single_s{j+1}"))
             st.caption("The values are collected for review, but prediction is intentionally disabled for a single cycle to avoid inventing missing historical features.")
-            st.button("Generate Prediction", disabled=True, help="A full contiguous history is required by the Research Selection feature pipeline.", key="single_cycle_blocked")
+            st.button("Generate Prediction", disabled=True, help="A full contiguous history is required by the frozen R1 feature pipeline.", key="single_cycle_blocked")
 
         else:
             st.write("Enter the engine's raw history from cycle 1 through its latest observed cycle. The frozen feature pipeline will calculate historical features using the same saved preprocessing and feature logic as the trained models.")
@@ -374,7 +373,7 @@ else:
                     manual.insert(0, "unit", int(engine_id_manual))
                     manual = manual[RAW_COLS]
                     predictor = load_predictor(dataset)
-                    with st.spinner("Calculating historical features and running the Research Selection prediction pipeline..."):
+                    with st.spinner("Calculating historical features and running the frozen R1 prediction pipeline..."):
                         result = predictor.predict(manual)
                     st.subheader("Manual historical prediction result")
                     st.dataframe(result, use_container_width=True, hide_index=True)
@@ -384,12 +383,12 @@ else:
                     st.error(f"Manual historical prediction could not be generated: {exc}")
 
 with st.expander("Dataset metrics and model notes"):
-    metric_rows = [{"Dataset": d, "Validation engines": m["engines"], "MAE": m["mae"], "RMSE": m["rmse"], "R²": m["r2"], "NASA Score": m["nasa"]} for d,m in RESEARCH_SELECTION_METRICS.items()]
+    metric_rows = [{"Dataset": d, "Test engines": m["engines"], "MAE": m["mae"], "RMSE": m["rmse"], "R²": m["r2"], "NASA Score": m["nasa"]} for d,m in THESIS_TEST_METRICS.items()]
     st.dataframe(pd.DataFrame(metric_rows), use_container_width=True, hide_index=True)
-    st.markdown("**Active model:** Research Selection CatBoost + XGBoost + LightGBM weighted ensemble. The previous Frozen R1 artifacts are retained as a rollback backup.")
-    st.markdown("**Intervals:** empirical residual-based 90% intervals calibrated from strict nested outer predictions; not formal conformal coverage guarantees.")
-    st.markdown("**Evaluation:** strict nested outer-validation metrics are displayed; they are research-level validation results, not official test-set metrics and not the selected engine's actual RUL.")
+    st.markdown("**Frozen model:** CatBoost + XGBoost + LightGBM weighted hybrid. No Extra Trees or ARCHE model is included in this R1 artifact set.")
+    st.markdown("**Intervals:** empirical residual-based 90% intervals from saved artifacts; not formal conformal coverage guarantees.")
+    st.markdown("**Evaluation:** historical thesis test-set metrics are displayed as reported; this web app does not recompute them from the selected engine.")
     st.markdown("**Ground truth:** matching NASA RUL_FD001–RUL_FD004 label files are bundled and automatically matched to the selected test subset and engine ID.")
 
 st.divider()
-st.caption("AeroLife · Academic research and demonstration · Research Selection deployment · Not certified for operational aircraft maintenance")
+st.caption("AeroLife · Academic research and demonstration · Frozen R1 artifacts · Not certified for operational aircraft maintenance")
