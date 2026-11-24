@@ -1,0 +1,22 @@
+{
+  "family": "CAT",
+  "cap": "160",
+  "params": {
+    "depth": 8,
+    "iterations": 3000,
+    "learning_rate": 0.03,
+    "l2_leaf_reg": 3.0,
+    "rsm": 0.5,
+    "random_seed": 0,
+    "verbose": 100,
+    "thread_count": 4,
+    "allow_writing_files": false
+  },
+  "n_train_rows": 160359,
+  "n_train_engines": 709,
+  "runtime_seconds": 775.54,
+  "data_fingerprint": "2ee5a4b9b0f8fe1a06e0",
+  "feature_pipeline": "research_feature_pipeline.joblib",
+  "training_data": "all four NASA C-MAPSS training subsets (709 engines)",
+  "seed": 0
+}
