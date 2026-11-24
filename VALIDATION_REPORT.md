@@ -1,42 +1,38 @@
-# AeroLife public dashboard update — validation notes
+# AeroLife Research Selection deployment — validation report
 
-## Included benchmark inputs
-- `test_FD001.txt`: 100 engines, 13,096 rows.
-- `test_FD002.txt`: 259 engines, 33,991 rows.
-- `test_FD003.txt`: 100 engines, 16,596 rows.
-- `test_FD004.txt`: 248 engines, 41,214 rows.
-- All four files were parsed as 26-column NASA C-MAPSS test histories.
+## Build contents
 
-## Runtime checks completed
-- Python syntax compilation: PASS for `app.py` and `aerolife_runtime.py`.
-- Frozen model bundle loading and actual benchmark-input inference: PASS for FD001–FD004.
-- Detailed predictions expose CatBoost, XGBoost, LightGBM and weighted hybrid output columns.
-- FD001 Engine 99 report inference: PASS (latest cycle 97; all component and hybrid predictions finite; interval and risk output returned).
-- SHAP TreeExplainer smoke test: PASS for FD001 Engine 99.
-- Global SHAP smoke test: PASS for a 30-engine FD001 sample (30 × 253 feature attribution matrix).
-- Existing synthetic runtime smoke test: PASS for FD001–FD004.
-- ZIP integrity check: PASS (`ZipFile.testzip()` returned no corrupt member).
+- Existing Streamlit dashboard structure retained (`app.py`, `aerolife_runtime.py`, benchmark data, custom input workflows, SHAP/report/download code).
+- Active `ensemble_FD001.json` through `ensemble_FD004.json` now load Research Selection bundles.
+- Previous Frozen R1 ensemble JSONs and interval tables are preserved with `_FrozenR1` suffixes; original `final_*.joblib` artifacts are unchanged.
+- Research Selection selection log, nested metrics and outer predictions are bundled under `artifacts/thesis/strict_nested/`.
+- Empirical 80%/90% interval tables are recalibrated using averaged repeated outer-validation predictions.
 
-## Not yet verified
-- Streamlit is not installed in this build environment, so a live browser interaction test was not possible.
-- Clean install and live execution under Python 3.12 on Streamlit Community Cloud must be confirmed after the GitHub update.
-- Exact notebook-to-app parity against all official test predictions was not recalculated in this update.
-- The four matching NASA ground-truth RUL files are now bundled under `data/nasa_rul/` and loaded automatically by dataset.
+## Final refit configuration
 
-## Research limitations
-- Dataset-level MAE/RMSE/R²/NASA Score are displayed as previously recorded thesis evaluation values, not recalculated in the web app.
-- Empirical residual intervals are not formal conformal coverage guarantees.
-- SHAP values combine the three tree-member attributions using frozen ensemble weights and describe tree outputs before member clipping and interval post-processing. They are not causal explanations.
-- This is a simulated benchmark research demonstration, not a certified real-aircraft maintenance system.
-- Previously documented OOF blending leakage concerns are not addressed by this dashboard update. No retraining or methodological correction is claimed.
+The selection log contains 15 inner-only selections per dataset. The final deployment rule selects the modal cap per dataset and uses component-wise median weights among records selecting that cap, followed by normalization:
 
+| Dataset | Final target | CatBoost | XGBoost | LightGBM |
+|---|---|---:|---:|---:|
+| FD001 | T200 | 0.7758 | 0.1121 | 0.1121 |
+| FD002 | 160 | 0.4297 | 0.2227 | 0.3476 |
+| FD003 | T200 | 0.7261 | 0.1071 | 0.1668 |
+| FD004 | T200 | 0.3681 | 0.1915 | 0.4403 |
 
-## Public dashboard V2 additions
-- Automatically loads the matching official NASA RUL label file for FD001–FD004 and validates label count against the selected test subset.
-- Adds a concise English-only Overall Explanation to the dashboard report and PDF report.
-- Adds custom-data upload and manual sensor input modes, including single-cycle data entry (prediction intentionally blocked without history) and historical-cycle manual entry.
-- Frozen R1 model artifacts and runtime feature pipeline are unchanged.
+The four uploaded training files reproduce the original development-data fingerprint `2ee5a4b9b0f8fe1a06e0` (709 engines; 160,359 rows). The three T200 base learners and feature pipeline were reused from Frozen R1 after matching data fingerprint, target and family hyperparameter metadata. New CatBoost, XGBoost and LightGBM T160 members were fitted on all 709 development engines for FD002.
 
-- Absolute prediction error is displayed as `abs(predicted RUL − actual RUL)` when ground truth is available; signed error is also included in the benchmark CSV export for diagnostic transparency.
-- Matching label counts were checked against bundled test-engine counts: FD001 100/100, FD002 259/259, FD003 100/100, FD004 248/248.
-- Runtime smoke test re-run after the report change: PASS for FD001–FD004.
+## Checks performed
+
+- `python -m py_compile app.py aerolife_runtime.py tests/*.py` — PASS.
+- `tests/smoke_test_runtime.py` — PASS for all four dataset bundles using synthetic histories (2 engines per dataset).
+- `tests/test_research_selection_runtime.py` — PASS for all four bundled NASA test input datasets (100, 259, 100 and 248 engines); finite component/ensemble predictions and valid interval ordering verified.
+- Bundle fingerprints, selected members, weights, artifact presence and model metadata are validated at runtime.
+
+A LightGBM feature-name warning appears during inference because the runtime passes a NumPy feature matrix to an estimator that retains feature-name metadata; it does not prevent predictions or the checks above.
+
+## Important limits
+
+- The displayed Research Selection metrics are strict nested outer-validation estimates for the selection procedure. They are not represented as measured accuracy of the final all-development-data refit artifacts.
+- The runtime smoke tests verify artifact loading and prediction execution, not predictive accuracy. No official-test accuracy was recalculated as part of this deployment build.
+- A live Streamlit browser/hosted deployment test was not run in this build environment. After pushing, verify the app on the hosting platform.
+- NASA C-MAPSS is simulated benchmark data. This academic demonstration is not certified for operational aircraft maintenance.
