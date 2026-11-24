@@ -13,11 +13,11 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 from aerolife_runtime import RULPredictor, RAW_COLS, SUBSETS
 
-st.set_page_config(page_title="AeroLife | Aircraft Engine Health", page_icon="✈️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="AeroLife | Aircraft Engine Health", page_icon="✈️", layout="wide", initial_sidebar_state="expanded")
 
-# Research Selection metrics remain the primary research reference. The NASA
-# Score displayed beside them is explicitly the historical Frozen R1 official-
-# test score, not a score calculated from the active Research Selection model.
+# Primary-model regression metrics are strict nested-validation estimates.
+# The NASA score is a separate historical official-test reference for the
+# Historical Baseline Reference; it is not attributed to the active predictor.
 RESEARCH_SELECTION_METRICS = {
     "FD001": {"engines": 100, "r2": 0.905409, "rmse": 17.744212, "mae": 11.556675},
     "FD002": {"engines": 260, "r2": 0.883943, "rmse": 19.623551, "mae": 13.133444},
@@ -32,6 +32,17 @@ FROZEN_R1_OFFICIAL_NASA = {
     "FD004": {"test_engines": 248, "nasa": 2731.377},
 }
 
+# Unweighted arithmetic means of the four dataset-specific values shown below.
+# They are descriptive averages, not pooled-engine metrics.
+PRIMARY_MODEL_AVERAGES = {
+    "r2": float(np.mean([v["r2"] for v in RESEARCH_SELECTION_METRICS.values()])),
+    "rmse": float(np.mean([v["rmse"] for v in RESEARCH_SELECTION_METRICS.values()])),
+    "mae": float(np.mean([v["mae"] for v in RESEARCH_SELECTION_METRICS.values()])),
+}
+HISTORICAL_BASELINE_MEAN_NASA = float(
+    np.mean([v["nasa"] for v in FROZEN_R1_OFFICIAL_NASA.values()])
+)
+
 st.markdown("""
 <style>
 :root {
@@ -45,7 +56,9 @@ st.markdown("""
 .block-container {padding-top: 1.15rem; padding-bottom: 2.4rem; max-width: 1480px;}
 [data-testid="stAppViewContainer"] {background: #f5f8fc;}
 [data-testid="stHeader"] {background: rgba(245,248,252,.86);}
-[data-testid="stSidebar"] {background: linear-gradient(180deg,#10243b 0%,#14364c 58%,#17465a 100%); border-right: 1px solid rgba(255,255,255,.10);}
+[data-testid="stSidebar"] {background: linear-gradient(180deg,#10243b 0%,#14364c 58%,#17465a 100%); border-right: 1px solid rgba(255,255,255,.10); min-width: 285px !important; width: 285px !important;}
+[data-testid="stSidebarCollapseButton"], [data-testid="stSidebarExpandButton"] {display:none !important;}
+[data-testid="stSidebar"] button[aria-label*="Collapse"], [data-testid="stSidebar"] button[aria-label*="Expand"] {display:none !important;}
 [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {color:#eef6fb;}
 [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {color:#d8e6ef;}
 [data-testid="stSidebar"] [data-testid="stRadio"] label {color:#edf5fa !important;}
@@ -77,6 +90,7 @@ hr {border-color:#dce6ef;}
   .block-container {padding: .7rem .75rem 1.8rem .75rem;}
   .hero {padding:1.15rem 1.1rem; border-radius:15px;}
   .hero h1 {font-size:1.65rem;}
+  [data-testid="stSidebar"] {min-width: 255px !important; width: 255px !important;}
 }
 </style>
 <div class="hero">
@@ -87,8 +101,7 @@ hr {border-color:#dce6ef;}
 </div>
 """, unsafe_allow_html=True)
 
-# Native Streamlit sidebar: collapsed by default, opens as a slide-in drawer
-# from the app menu button and can be dismissed with the same control.
+# Persistent navigation sidebar: expanded on load with collapse controls hidden.
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand">
@@ -105,25 +118,29 @@ with st.sidebar:
     st.markdown("""
     <div class="sidebar-card">
       <div class="k">Active deployment</div>
-      <div class="v">Research Selection Ensemble</div>
+      <div class="v">Primary Research Model</div>
     </div>
     <div class="sidebar-card">
       <div class="k">Benchmark scope</div>
       <div class="v">4 NASA C-MAPSS subsets</div>
     </div>
     <div class="sidebar-card">
-      <div class="k">Project researcher</div>
+      <div class="k">Researcher</div>
       <div class="v">MD FAHIM MUNTASIR LEON</div>
+    </div>
+    <div class="sidebar-card">
+      <div class="k">Research Supervisor</div>
+      <div class="v">FATEMA TUJ JOHORA</div>
     </div>
     <div class="tag" style="font-size:.72rem;padding:.65rem .15rem 0 .15rem;">
       Academic research prototype · Not for operational maintenance decisions
     </div>
     """, unsafe_allow_html=True)
 
-st.caption("Research Selection is the active prediction model · NASA C-MAPSS simulated benchmark data")
+st.caption("The Primary Research Model powers live RUL predictions · NASA C-MAPSS simulated benchmark data")
 st.warning("Academic research prototype. NASA C-MAPSS is simulated benchmark data, not live aircraft telemetry. Outputs are not certified or intended as standalone operational maintenance instructions.")
 
-@st.cache_resource(show_spinner="Loading Research Selection models...")
+@st.cache_resource(show_spinner="Loading the Primary Research Model...")
 def load_predictor(dataset: str):
     return RULPredictor(dataset, root=HERE)
 
@@ -189,24 +206,32 @@ def ensemble_shap(dataset: str, X: np.ndarray):
         names = [f"feature_{i}" for i in range(X.shape[1])]
     return total_values, total_base, names
 
+def apply_public_model_label(results: pd.DataFrame) -> pd.DataFrame:
+    """Use the public-facing model name in rendered and downloaded results."""
+    output = results.copy()
+    if "ensemble" in output.columns:
+        output["ensemble"] = "Primary Research Model · Weighted Ensemble"
+    return output
+
+
 def render_metrics(dataset: str):
     research = RESEARCH_SELECTION_METRICS[dataset]
     official = FROZEN_R1_OFFICIAL_NASA[dataset]
     st.subheader("Dataset Performance")
-    st.caption("R², RMSE and MAE: Research Selection strict nested validation. NASA Score: historical Frozen R1 official NASA test endpoint; shown as a separate reference, not as a Research Selection score.")
+    st.caption("R², RMSE and MAE are strict nested-validation estimates for the Primary Research Model. NASA Score is the historical official-test reference for the Historical Baseline Reference; it is not produced by the active predictor.")
     cols = st.columns(5)
-    cols[0].metric("Nested validation engines", f"{research['engines']:,}")
-    cols[1].metric("MAE · Research Selection", f"{research['mae']:.3f} cycles")
-    cols[2].metric("RMSE · Research Selection", f"{research['rmse']:.3f} cycles")
-    cols[3].metric("R² · Research Selection", f"{research['r2']:.4f}")
-    cols[4].metric("Frozen R1 Official NASA", f"{official['nasa']:,.1f}", help=f"Historical Frozen R1 score on {official['test_engines']} official NASA test engines. This is not the Research Selection NASA score.")
-    st.caption(f"Frozen R1 NASA reference population: {official['test_engines']} official test engines. Research Selection validation population: {research['engines']} development engines.")
+    cols[0].metric("Validation engines", f"{research['engines']:,}")
+    cols[1].metric("MAE · Primary Model", f"{research['mae']:.3f} cycles")
+    cols[2].metric("RMSE · Primary Model", f"{research['rmse']:.3f} cycles")
+    cols[3].metric("R² · Primary Model", f"{research['r2']:.4f}")
+    cols[4].metric("NASA Score · Historical Reference", f"{official['nasa']:,.1f}", help=f"Historical official NASA test score for the Historical Baseline Reference on {official['test_engines']} official test engines. It is not a score for the Primary Research Model.")
+    st.caption(f"Historical reference population: {official['test_engines']} official test engines · Primary-model nested-validation population: {research['engines']} development engines.")
 
 def render_engine_report(dataset: str, engine_id: int, history: pd.DataFrame, predictor: RULPredictor, actual_rul=None, show_shap: bool = True):
-    pred = predictor.predict(history)
+    pred = apply_public_model_label(predictor.predict(history))
     row = pred.iloc[0]
     st.markdown(f"## Aircraft Engine Health Report — {dataset}")
-    st.caption(f"Engine ID: {engine_id} · Latest observed cycle: {int(row.last_cycle)} · Ensemble: {row.ensemble}")
+    st.caption(f"Engine ID: {engine_id} · Latest observed cycle: {int(row.last_cycle)} · Model: {row.ensemble}")
     risk = str(row.risk_band)
     if risk.startswith("Critical"):
         st.error(f"Risk assessment: {risk}")
@@ -282,7 +307,7 @@ def render_engine_report(dataset: str, engine_id: int, history: pd.DataFrame, pr
             local_df = local_df.sort_values("SHAP contribution")
             fig_local = px.bar(local_df, x="SHAP contribution", y="Feature", orientation="h", color="SHAP contribution", color_continuous_scale="RdBu", title=f"Local SHAP explanation · Engine {engine_id}")
             st.plotly_chart(fig_local, use_container_width=True)
-            st.caption("SHAP contributions combine the three tree models using the frozen ensemble weights. They explain the weighted tree outputs before the runtime's member clipping and interval post-processing; they are feature attributions, not causal effects.")
+            st.caption("SHAP contributions combine the three tree models using the saved ensemble weights. They explain the weighted tree outputs before the runtime's member clipping and interval post-processing; they are feature attributions, not causal effects.")
         except ImportError:
             st.warning("SHAP package is not installed in this deployment. Install the pinned requirements and redeploy to enable explanations.")
         except Exception as exc:
@@ -343,25 +368,42 @@ if page == "Overview":
     overview_cols[1].metric("Development engines", "709")
     overview_cols[2].metric("Official test engines", "707")
     overview_cols[3].metric("Sensor channels", "21")
+
+    st.markdown("### Research Performance Snapshot")
+    st.caption("Unweighted arithmetic averages across FD001–FD004. R², RMSE and MAE summarise strict nested validation for the Primary Research Model; NASA Score is a separate historical official-test reference for the Historical Baseline Reference.")
+    performance_cols = st.columns(4)
+    performance_cols[0].metric("Mean R²", f"{PRIMARY_MODEL_AVERAGES['r2']:.4f}")
+    performance_cols[1].metric("Mean RMSE", f"{PRIMARY_MODEL_AVERAGES['rmse']:.3f} cycles")
+    performance_cols[2].metric("Mean MAE", f"{PRIMARY_MODEL_AVERAGES['mae']:.3f} cycles")
+    performance_cols[3].metric("Mean NASA Score", f"{HISTORICAL_BASELINE_MEAN_NASA:,.1f}", help="Unweighted mean of the four historical official-test NASA scores for the Historical Baseline Reference. Not a pooled-engine score and not a Primary Research Model score.")
+    st.caption("The first three averages are calculated from the four dataset-level nested-validation estimates. The NASA average is calculated separately from the four historical official-test reference scores. Each is an unweighted mean across datasets, not a pooled-engine metric.")
+
+    with st.expander("Dataset-level performance details", expanded=False):
+        overview_rows = []
+        for subset in SUBSETS:
+            r = RESEARCH_SELECTION_METRICS[subset]
+            f = FROZEN_R1_OFFICIAL_NASA[subset]
+            overview_rows.append({
+                "Dataset": subset,
+                "Validation engines": r["engines"],
+                "Primary Model R²": r["r2"],
+                "Primary Model RMSE": r["rmse"],
+                "Primary Model MAE": r["mae"],
+                "Historical Reference NASA Score": f["nasa"],
+                "Historical Reference Test Engines": f["test_engines"],
+            })
+        st.dataframe(pd.DataFrame(overview_rows), use_container_width=True, hide_index=True)
+
     st.markdown("### Explore AeroLife")
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**NASA Benchmark Explorer**")
         st.write("Inspect the preloaded FD001–FD004 test engines, generate per-engine RUL reports, review sensor trends and explore SHAP explanations.")
-        st.caption("Open this workspace from the slide-in navigation panel.")
+        st.caption("Open this workspace from the persistent navigation sidebar.")
     with c2:
         st.markdown("**Custom Data Prediction**")
-        st.write("Upload a CSV/NASA TXT file or enter historical sensor readings manually to generate predictions with the active Research Selection model.")
-        st.caption("Open this workspace from the slide-in navigation panel.")
-    with st.expander("Research performance snapshot", expanded=True):
-        overview_rows = []
-        for subset in SUBSETS:
-            r = RESEARCH_SELECTION_METRICS[subset]
-            f = FROZEN_R1_OFFICIAL_NASA[subset]
-            overview_rows.append({"Dataset": subset, "Research validation engines": r["engines"], "Research Selection R²": r["r2"], "Research Selection RMSE": r["rmse"], "Research Selection MAE": r["mae"], "Frozen R1 official NASA Score": f["nasa"]})
-        st.dataframe(pd.DataFrame(overview_rows), use_container_width=True, hide_index=True)
-        st.caption("Research Selection regression metrics are strict nested validation estimates. NASA Score values are historical Frozen R1 official-test references. These are different evaluation protocols and are labelled separately.")
-    st.info("Use the menu icon at the top-left to open the slide-in navigation panel. On smaller screens, the panel overlays the workspace and can be closed from the same menu control.")
+        st.write("Upload a CSV/NASA TXT file or enter historical sensor readings manually to generate predictions with the Primary Research Model.")
+        st.caption("Open this workspace from the persistent navigation sidebar.")
 
 elif page == "NASA Benchmark Explorer":
     st.markdown("### Explore the preloaded NASA benchmark")
@@ -402,7 +444,7 @@ elif page == "NASA Benchmark Explorer":
         st.error(f"Could not load this benchmark subset: {exc}")
 
 elif page == "Custom Data Prediction":
-    st.markdown('<div class="section-kicker">Prediction workspace</div><div class="page-title">Custom Data Prediction</div><div class="page-subtitle">Run the Research Selection model on uploaded files or complete historical sensor records.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-kicker">Prediction workspace</div><div class="page-title">Custom Data Prediction</div><div class="page-subtitle">Run the Primary Research Model on uploaded files or complete historical sensor records.</div>', unsafe_allow_html=True)
     st.markdown("### Predict using your own engine data")
     st.write("Choose upload-based prediction or enter sensor readings manually. The selected dataset must match the data's operating regime/fault subset.")
     dataset = st.selectbox("Select the matching model subset", SUBSETS, key="custom_dataset")
@@ -430,8 +472,8 @@ elif page == "Custom Data Prediction":
                         st.dataframe(raw.head(8), use_container_width=True)
                         if st.button("Predict external engine data", type="primary", key="predict_uploaded_custom"):
                             predictor = load_predictor(dataset)
-                            with st.spinner("Running Research Selection prediction pipeline..."):
-                                result = predictor.predict(raw)
+                            with st.spinner("Running the Primary Research Model prediction pipeline..."):
+                                result = apply_public_model_label(predictor.predict(raw))
                             st.subheader("External data prediction results")
                             st.dataframe(result, use_container_width=True, hide_index=True)
                             st.metric("Mean hybrid RUL", f"{result.predicted_rul.mean():.2f} cycles")
@@ -444,7 +486,7 @@ elif page == "Custom Data Prediction":
     else:
         manual_mode = st.radio("Manual input mode", ["Single Cycle Input", "Historical Cycle Input"], horizontal=True, key="manual_input_mode")
         if manual_mode == "Single Cycle Input":
-            st.info("A single observation can be entered here, but the Research Selection model uses historical rolling, slope, drift, and health-index features. A valid prediction cannot be generated from one cycle alone. Enter the engine's full cycle history in Historical Cycle Input to generate a prediction.")
+            st.info("A single observation can be entered here, but the Primary Research Model uses historical rolling, slope, drift, and health-index features. A valid prediction cannot be generated from one cycle alone. Enter the engine's full cycle history in Historical Cycle Input to generate a prediction.")
             engine_id_manual = st.number_input("Engine ID", min_value=1, value=1, step=1, key="single_engine_id")
             cycle_manual = st.number_input("Current cycle", min_value=1, value=1, step=1, key="single_cycle")
             st.markdown("**Operating settings**")
@@ -457,10 +499,10 @@ elif page == "Custom Data Prediction":
                 for j in range(base, min(base + 7, 21)):
                     sensor_values.append(cols[j-base].number_input(f"S{j+1}", value=0.0, format="%.6f", key=f"single_s{j+1}"))
             st.caption("The values are collected for review, but prediction is intentionally disabled for a single cycle to avoid inventing missing historical features.")
-            st.button("Generate Prediction", disabled=True, help="A full contiguous history is required by the Research Selection feature pipeline.", key="single_cycle_blocked")
+            st.button("Generate Prediction", disabled=True, help="A full contiguous history is required by the Primary Research Model feature pipeline.", key="single_cycle_blocked")
 
         else:
-            st.write("Enter the engine's raw history from cycle 1 through its latest observed cycle. The frozen feature pipeline will calculate historical features using the same saved preprocessing and feature logic as the trained models.")
+            st.write("Enter the engine's raw history from cycle 1 through its latest observed cycle. The saved feature pipeline will calculate historical features using the same saved preprocessing and feature logic as the trained models.")
             engine_id_manual = st.number_input("Engine ID", min_value=1, value=1, step=1, key="history_engine_id")
             manual_cols = ["cycle"] + RAW_COLS[2:]
             template = pd.DataFrame([{c: None for c in manual_cols} for _ in range(5)])
@@ -487,8 +529,8 @@ elif page == "Custom Data Prediction":
                     manual.insert(0, "unit", int(engine_id_manual))
                     manual = manual[RAW_COLS]
                     predictor = load_predictor(dataset)
-                    with st.spinner("Calculating historical features and running the Research Selection prediction pipeline..."):
-                        result = predictor.predict(manual)
+                    with st.spinner("Calculating historical features and running the Primary Research Model prediction pipeline..."):
+                        result = apply_public_model_label(predictor.predict(manual))
                     st.subheader("Manual historical prediction result")
                     st.dataframe(result, use_container_width=True, hide_index=True)
                     st.metric("Predicted Hybrid RUL", f"{float(result.iloc[0].predicted_rul):.2f} cycles")
@@ -510,7 +552,7 @@ elif page == "About AeroLife":
         st.markdown("### Project overview")
         st.write("AeroLife investigates data-driven Remaining Useful Life (RUL) estimation for turbofan engines using the NASA C-MAPSS benchmark. It combines complementary tree-based learners and explainability methods to make model predictions easier to inspect and interpret.")
         st.markdown("### Methodology")
-        st.write("The active Research Selection model uses a weighted ensemble of CatBoost, XGBoost and LightGBM, supported by sensor-history feature engineering and SHAP-based explanations. The dashboard provides benchmark exploration, custom-data inference, sensor trend analysis and downloadable engine reports.")
+        st.write("The Primary Research Model uses a weighted ensemble of CatBoost, XGBoost and LightGBM, supported by sensor-history feature engineering and SHAP-based explanations. The dashboard provides benchmark exploration, custom-data inference, sensor trend analysis and downloadable engine reports.")
         st.markdown("### Dataset and scope")
         st.write("The study uses NASA C-MAPSS subsets FD001, FD002, FD003 and FD004, including three operating settings and 21 sensor channels. Benchmark data are simulated and are used here for academic research and demonstration.")
     with about_right:
@@ -521,13 +563,13 @@ elif page == "About AeroLife":
           <div class="v" style="color:#142c45;font-size:1.05rem;">MD FAHIM MUNTASIR LEON</div>
         </div>
         <div class="sidebar-card" style="background:#fff;border:1px solid #dce6ef;">
-          <div class="k" style="color:#61758b;">Supervisor</div>
+          <div class="k" style="color:#61758b;">Research Supervisor</div>
           <div class="v" style="color:#142c45;font-size:1.0rem;">FATEMA TUJ JOHORA</div>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("### Model information")
         st.markdown("""
-        - **Active model:** Research Selection weighted ensemble
+        - **Primary model:** Weighted ensemble of CatBoost, XGBoost and LightGBM
         - **Algorithms:** CatBoost · XGBoost · LightGBM
         - **Explainability:** SHAP
         - **Prediction target:** Remaining Useful Life (cycles)
@@ -540,11 +582,19 @@ if page in ("NASA Benchmark Explorer", "Overview"):
         for d in SUBSETS:
             research = RESEARCH_SELECTION_METRICS[d]
             official = FROZEN_R1_OFFICIAL_NASA[d]
-            metric_rows.append({"Dataset": d, "Research validation engines": research["engines"], "Research Selection MAE": research["mae"], "Research Selection RMSE": research["rmse"], "Research Selection R²": research["r2"], "Frozen R1 official NASA Score": official["nasa"], "Frozen R1 official test engines": official["test_engines"]})
+            metric_rows.append({
+                "Dataset": d,
+                "Validation engines": research["engines"],
+                "Primary Model MAE": research["mae"],
+                "Primary Model RMSE": research["rmse"],
+                "Primary Model R²": research["r2"],
+                "Historical Reference NASA Score": official["nasa"],
+                "Historical Reference Test Engines": official["test_engines"],
+            })
         st.dataframe(pd.DataFrame(metric_rows), use_container_width=True, hide_index=True)
-        st.markdown("**Active prediction model:** Research Selection CatBoost + XGBoost + LightGBM weighted ensemble. Frozen R1 artifacts are retained as a separate rollback/reference set.")
-        st.markdown("**Metric provenance:** R², RMSE and MAE are Research Selection strict nested-validation results. NASA Score is the historical Frozen R1 official-test score and is not attributed to Research Selection.")
+        st.markdown("**Primary prediction system:** CatBoost + XGBoost + LightGBM weighted ensemble. The Historical Baseline Reference is retained separately for historical benchmark comparison.")
+        st.markdown("**Metric provenance:** R², RMSE and MAE are strict nested-validation results for the Primary Research Model. NASA Score is the historical official-test score for the Historical Baseline Reference; it is not attributed to the Primary Research Model.")
         st.markdown("**Prediction rule:** NASA Score evaluates labelled benchmark predictions; it does not generate or adjust an engine's predicted RUL. Custom data cannot receive a NASA Score unless matching ground-truth RUL labels are independently available.")
 
 st.divider()
-st.caption("AeroLife · Research by MD FAHIM MUNTASIR LEON · Supervisor: FATEMA TUJ JOHORA · Academic prototype, not certified for operational aircraft maintenance")
+st.caption("AeroLife · Researcher: MD FAHIM MUNTASIR LEON · Research Supervisor: FATEMA TUJ JOHORA · Academic research prototype, not certified for operational aircraft maintenance")
